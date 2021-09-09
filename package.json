@@ -17,8 +17,8 @@
   "scripts": {
     "test": "jest",
     "build": "napi build --platform --release native",
-    "build:test": "napi build",
-    "build:debug": "napi build"
+    "build:test": "napi build --platform native",
+    "build:debug": "napi build --platform native"
   },
   "dependencies": {
     "@node-rs/helper": "^1.2.1"

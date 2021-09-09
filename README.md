@@ -11,12 +11,12 @@ You'll need the rust nightly version listed in `rust-toolchain` in order to buil
 This package is currently not deployed anywhere, so there is a fairly manual process to use it.
 
 - clone the repo
-- build the package `yarn build`
+- build the package `yarn build:debug`
 - `npx yalc publish`
 - in your other repo `npx yalc install`
 - `require('swcify')`;
 
 ### Running tests
 
-- `yarn build:debug`
+- `yarn build:test`
 - `yarn test`
