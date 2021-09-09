@@ -8,6 +8,8 @@ You'll need the rust nightly version listed in `rust-toolchain` in order to buil
 
 ### Using locally from a node project
 
+This package is currently not deployed anywhere, so there is a fairly manual process to use it.
+
 - clone the repo
 - build the package `yarn build`
 - `npx yalc publish`
