@@ -1,0 +1,26 @@
+{
+  "name": "swcify",
+  "version": "0.1.0",
+  "license": "MIT",
+  "devDependencies": {
+    "@napi-rs/cli": "^1.0.0",
+    "jest": "^27.1.0"
+  },
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "swcify",
+    "triples": {
+      "defaults": true
+    }
+  },
+  "scripts": {
+    "test": "jest",
+    "build": "napi build --platform --release native",
+    "build:test": "napi build",
+    "build:debug": "napi build"
+  },
+  "dependencies": {
+    "@node-rs/helper": "^1.2.1"
+  }
+}

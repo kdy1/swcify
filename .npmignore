@@ -1,0 +1,43 @@
+# various node stuffs
+**/node_modules
+
+# IDE files
+*.log
+.idea/
+**/.DS_Store
+
+# unnecessary package files
+**/tests.rs
+**/tests/
+**/benches/
+**/target/
+*.svg
+
+# rust stuff we don't need because of napi
+*.rs
+/scripts/npm
+/native/
+/src
+/.vscode
+/*.node
+target/
+native/index.node
+native/artifacts.json
+
+# lock files
+yarn.lock
+package-lock.json
+atoms
+bundler
+Cargo.lock
+Cargo.toml
+
+# needless MD
+CONTRIBUTING.md
+
+# dot files
+.github
+.cargo
+.gitmodules
+.rustfmt.toml
+.gitattributes
