@@ -1,5 +1,5 @@
 {
-  "name": "swcify",
+  "name": "@shopify/swcify",
   "version": "0.1.0",
   "license": "MIT",
   "devDependencies": {
@@ -15,7 +15,8 @@
     }
   },
   "scripts": {
-    "test": "jest",
+    "test": "yarn jest",
+    "prepublishOnly": "yarn build",
     "build": "napi build --platform --release native",
     "build:test": "napi build --platform native",
     "build:debug": "napi build --platform native"
