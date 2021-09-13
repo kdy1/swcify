@@ -2,24 +2,22 @@
 // https://github.com/swc-project/swc/blob/master/node/binding/src
 // as such we retain their license in LICENSE.md in this folder
 
-use crate::process::process_js_shopify;
 use crate::{
   complete_output, get_compiler,
   util::{CtxtExt, MapErr},
 };
-use anyhow::Error;
+use anyhow::{Context as _, Error};
 use napi::{CallContext, Env, JsBoolean, JsObject, JsString, Task};
 use std::sync::Arc;
 use swc::config::Options;
-use swc::{Compiler, TransformOutput};
+use swc::{try_with_handler, Compiler, TransformOutput};
 use swc_common::{FileName, SourceFile};
 use swc_ecmascript::ast::Program;
+use swc_ecmascript::transforms::pass::noop;
 
 /// Input to transform
 #[derive(Debug)]
 pub enum Input {
-  /// json string
-  Program(String),
   /// Raw source code.
   Source(Arc<SourceFile>),
 }
@@ -35,18 +33,22 @@ impl Task for TransformTask {
   type JsValue = JsObject;
 
   fn compute(&mut self) -> napi::Result<Self::Output> {
-    self
-      .c
-      .run(|| match self.input {
-        Input::Program(ref s) => {
-          let program: Program = serde_json::from_str(&s).expect("failed to deserialize Program");
-          // TODO: Source map
-          self.c.process_js(program, &self.options)
+    try_with_handler(self.c.cm.clone(), |handler| {
+      self.c.run(|| match self.input {
+        Input::Source(ref s) => {
+          //TODO: replace with chained transforms: chain!(*)
+          let before_pass = noop();
+          self.c.process_js_with_custom_pass(
+            s.clone(),
+            &handler,
+            &self.options,
+            before_pass,
+            noop(),
+          )
         }
-
-        Input::Source(ref s) => process_js_shopify(&self.c, s.clone(), &self.options),
       })
-      .convert_err()
+    })
+    .convert_err()
   }
 
   fn resolve(self, env: Env, result: Self::Output) -> napi::Result<Self::JsValue> {
@@ -80,36 +82,34 @@ where
   let is_module = cx.get::<JsBoolean>(1)?;
   let options: Options = cx.get_deserialized(2)?;
 
-  let output = c.run(|| -> napi::Result<_> {
-    if is_module.get_value()? {
-      let program: Program =
-        serde_json::from_str(s.as_str()?).expect("failed to deserialize Program");
-      c.process_js(program, &options).convert_err()
-    } else {
-      let fm = op(&c, s.as_str()?.to_string(), &options).expect("failed to create fm");
-      c.process_js_file(fm, &options).convert_err()
-    }
-  })?;
+  let output = try_with_handler(c.cm.clone(), |handler| {
+    c.run(|| {
+      if is_module.get_value()? {
+        let program: Program =
+          serde_json::from_str(s.as_str()?).context("failed to deserialize Program")?;
+        c.process_js(&handler, program, &options)
+      } else {
+        let fm = op(&c, s.as_str()?.to_string(), &options).context("failed to load file.")?;
+        c.process_js_file(fm, &handler, &options)
+      }
+    })
+  })
+  .convert_err()?;
 
   complete_output(cx.env, output)
 }
 
 #[js_function(4)]
 pub fn transform(cx: CallContext) -> napi::Result<JsObject> {
-  schedule_transform(cx, |c, src, is_module, options| {
-    let input = if is_module {
-      Input::Program(src)
-    } else {
-      Input::Source(c.cm.new_source_file(
-        if options.filename.is_empty() {
-          FileName::Anon
-        } else {
-          FileName::Real(options.filename.clone().into())
-        },
-        src,
-      ))
-    };
-
+  schedule_transform(cx, |c, src, _, options| {
+    let input = Input::Source(c.cm.new_source_file(
+      if options.filename.is_empty() {
+        FileName::Anon
+      } else {
+        FileName::Real(options.filename.clone().into())
+      },
+      src,
+    ));
     TransformTask {
       c: c.clone(),
       input,
