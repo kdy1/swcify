@@ -1,0 +1,18 @@
+name: swcify
+type: node
+up:
+  - node:
+      version: 12.14.0
+      yarn: 1.22.0
+
+commands:
+  __default__: build
+  build:
+    desc: 'Build the project'
+    run: yarn run build
+  test:
+    desc: 'Run all the tests'
+    run: yarn run test
+  style:
+    desc: 'run lint checks'
+    run: yarn run lint

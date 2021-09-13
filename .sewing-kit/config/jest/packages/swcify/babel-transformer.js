@@ -1,0 +1,1 @@
+const {createTransformer} = require('babel-jest').default; module.exports = createTransformer({"presets":[["/Users/mallen/src/github.com/Shopify/swcify/node_modules/@shopify/babel-preset/index.js",{"typescript":true,"react":true}]],"configFile":false,"targets":"current node"});

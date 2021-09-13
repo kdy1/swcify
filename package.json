@@ -5,12 +5,18 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {
-    "@napi-rs/cli": "^1.0.0",
-    "jest": "^27.1.0"
-  },
-  "main": "index.js",
-  "types": "index.d.ts",
+  "keywords": [
+    "shopify",
+    "swc",
+    "build",
+    "fast",
+    "tooling",
+    "crustaceans"
+  ],
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.mjs",
+  "esnext": "build/esnext/index.esnext",
+  "types": "build/ts/src/index.d.ts",
   "napi": {
     "name": "swcify",
     "triples": {
@@ -20,11 +26,23 @@
   "scripts": {
     "test": "yarn jest",
     "prepublishOnly": "yarn build",
-    "build": "napi build --platform --release native",
-    "build:test": "napi build --platform native",
-    "build:debug": "napi build --platform native"
+    "build": "skn build && build:native",
+    "build:native": "napi build --platform --release native",
+    "build:native:test": "napi build --platform native",
+    "build:native:debug": "napi build --platform native"
   },
-  "dependencies": {
-    "@node-rs/helper": "^1.2.1"
+  "devDependencies": {
+    "@napi-rs/cli": "^1.0.0",
+    "@node-rs/helper": "^1.2.1",
+    "@sewing-kit/cli": "^0.6.4",
+    "@sewing-kit/core": "^0.6.4",
+    "@sewing-kit/plugin-build-library": "^0.2.0",
+    "@sewing-kit/plugin-eslint": "^0.4.4",
+    "@sewing-kit/plugin-jest": "^0.5.3",
+    "@sewing-kit/plugin-prettier": "^0.1.4",
+    "@shopify/babel-preset": "^24.1.3",
+    "@shopify/typescript-configs": "^5.0.0",
+    "graphql-mini-transforms": "^3.2.0",
+    "jest": "^27.1.0"
   }
 }
