@@ -25,8 +25,7 @@
   },
   "scripts": {
     "test": "yarn jest",
-    "prepublishOnly": "yarn build",
-    "build": "skn build && build:native",
+    "build": "skn build && yarn run build:native",
     "build:native": "napi build --platform --release native",
     "build:native:test": "napi build --platform native",
     "build:native:debug": "napi build --platform native"

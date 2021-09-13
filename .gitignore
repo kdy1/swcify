@@ -2,3 +2,7 @@
 /native
 node_modules
 *.node
+build
+.sewing-kit
+index.*
+!index.ts

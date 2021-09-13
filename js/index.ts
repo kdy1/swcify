@@ -1,5 +1,5 @@
-const path = require("path");
-const { loadBinding } = require("@node-rs/helper");
+import path from "path";
+import { loadBinding } from "@node-rs/helper";
 
 // grabs the appropriate native code for our platform
 // ("swcify" is the name defined in package.json)

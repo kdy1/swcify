@@ -9,14 +9,13 @@ import {
 export default createPackage((pkg) => {
   console.log("test");
   pkg.runtimes(Runtime.Node);
-  pkg.entry({ root: "./index" });
-  console.log("13");
+  pkg.entry({ root: "./js/index" });
   try {
     pkg.use(
       buildLibrary({
         jestEnvironment: "jsdom",
         // we don't have browser targets but this option isn't optional atm
-        browserTargets: "extends @shopify/browserslist-config, ios >= 12",
+        browserTargets: "",
         nodeTargets: "node 12.13",
       }),
       buildLibraryWorkspace({ graphql: false }),

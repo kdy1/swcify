@@ -13,5 +13,5 @@
     "strictNullChecks": true,
     "emitDeclarationOnly": true
   },
-  "include": ["./index.ts", "**/*.test.ts", "**/*.test.ts"]
+  "include": ["js/index.ts", "**/*.test.ts", "**/*.test.ts"]
 }
