@@ -1,8 +1,12 @@
 ## SWCify
 
+[![Build native binaries](https://github.com/Shopify/swcify/actions/workflows/build_native.yml/badge.svg)](https://github.com/Shopify/swcify/actions/workflows/build_native.yml)
+[![JS tests](https://github.com/Shopify/swcify/actions/workflows/js_test.yml/badge.svg)](https://github.com/Shopify/swcify/actions/workflows/js_test.yml)
+[Shipit](https://shipit.shopify.io/shopify/swcify/production)
+
 This repo wraps SWC with a napi-rs package implementing our own custom transforms.
 
-### toolchain
+### Toolchain
 
 You'll need the rust nightly version listed in `rust-toolchain` in order to build this project.
 
