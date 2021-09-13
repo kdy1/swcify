@@ -15,25 +15,17 @@ use std::{env, panic::set_hook, sync::Arc};
 use swc::{Compiler, TransformOutput};
 use swc_common::{
   self,
-  errors::{ColorConfig, Handler},
   sync::Lazy,
   FilePathMapping, SourceMap,
 };
 
-mod process;
 mod transform;
 mod util;
 
 static COMPILER: Lazy<Arc<Compiler>> = Lazy::new(|| {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
-  let handler = Arc::new(Handler::with_tty_emitter(
-    ColorConfig::Always,
-    true,
-    false,
-    Some(cm.clone()),
-  ));
 
-  Arc::new(Compiler::new(cm.clone(), handler))
+  Arc::new(Compiler::new(cm.clone()))
 });
 
 #[module_exports]
