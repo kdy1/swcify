@@ -3,5 +3,4 @@ tasks:
     action: "Run Diagnostics"
     description: "For testing stuff until we can build this lib"
     steps:
-      - rustup --version || true
-      - /app/.cargo/bin/rustup --version
+      - rustup --version
