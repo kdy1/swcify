@@ -19,7 +19,7 @@
   },
   "scripts": {
     "test": "yarn jest",
-    "prepublishOnly": "yarn build",
+    "prepublishOnly": "yarn build:test",
     "build": "napi build --platform --release native",
     "build:test": "napi build --platform native",
     "build:debug": "napi build --platform native"
