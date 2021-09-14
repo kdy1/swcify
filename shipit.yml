@@ -4,5 +4,4 @@ tasks:
     description: "For testing stuff until we can build this lib"
     steps:
       - rustup --version || true
-      - echo $PATH
-      - ls -al /root/.cargo/bin
+      - /app/.cargo/bin/rustup --version
