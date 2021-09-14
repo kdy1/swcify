@@ -9,6 +9,12 @@
     "@napi-rs/cli": "^1.0.0",
     "jest": "^27.1.0"
   },
+  "files": [
+    "index.d.ts",
+    "index.js",
+    "swcify.node",
+    "native"
+  ],
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
