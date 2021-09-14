@@ -5,3 +5,4 @@ tasks:
     steps:
       - rustup --version || true
       - echo $PATH
+      - ls -al /root/.cargo/bin
