@@ -3,4 +3,4 @@ tasks:
     action: "Run Diagnostics"
     description: "For testing stuff until we can build this lib"
     steps:
-      - which rustup
+      - rustup --version
