@@ -51,7 +51,7 @@ jobs:
         run: yarn install --frozen-lockfile --registry https://registry.npmjs.org --network-timeout 300000
 
       - name: 'Build'
-        run: yarn build
+        run: yarn build:test
         env:
           MACOSX_DEPLOYMENT_TARGET: '10.13'
 
