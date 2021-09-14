@@ -18,10 +18,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "swcify",
-    "triples": {
-      "defaults": true
-    }
+    "name": "swcify"
   },
   "scripts": {
     "test": "yarn jest",
