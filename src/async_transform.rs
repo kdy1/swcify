@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use swc_common::DUMMY_SP;
 use swc_ecmascript::ast::{
-    ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, ExprOrSpread, ExprOrSuper, Ident, ImportDecl,
-    ImportSpecifier, KeyValueProp, Lit, MemberExpr, ObjectLit, Prop, PropName, PropOrSpread, Str,
-    StrKind,
+    ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Expr, ExprOrSpread, ExprOrSuper, FnExpr,
+    Function, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr, ObjectLit, Prop,
+    PropName, PropOrSpread, ReturnStmt, Stmt, Str, StrKind,
 };
 use swc_ecmascript::utils::ident::{Id, IdentLike};
 use swc_ecmascript::visit::{Fold, FoldWith};
@@ -68,9 +68,9 @@ impl Fold for AsyncTransform {
                     ImportSpecifier::Default(default_specifier) => {
                         self.bindings.push(default_specifier.local.to_id());
                     }
-                    // ImportSpecifier::Named(named_specifier) => {
-                    //     // TODO: handle named imports
-                    // }
+                    ImportSpecifier::Named(named_specifier) => {
+                        self.bindings.push(named_specifier.local.to_id())
+                    }
                     _ => {}
                 }
             }
@@ -83,7 +83,6 @@ impl Fold for AsyncTransform {
 
         if let ExprOrSuper::Expr(i) = &expr.callee {
             if let Expr::Ident(identifier) = &**i {
-                println!("id: {}", &identifier);
                 if self.bindings.contains(&identifier.to_id()) {
                     // TODO: emit error if invalid arg lengths
                     if expr.args.len() == 1 {
@@ -94,7 +93,6 @@ impl Fold for AsyncTransform {
                                     match &**prop {
                                         Prop::KeyValue(key_val) => match &key_val.key {
                                             PropName::Ident(Ident { sym: key_sym, .. }) => {
-                                                println!("Oof: {}", key_sym);
                                                 if key_sym == "load" {
                                                     import_path = get_import_path(&key_val.value);
                                                 } else if key_sym == "id" {
@@ -104,19 +102,20 @@ impl Fold for AsyncTransform {
                                             }
                                             _ => {}
                                         },
-                                        // Prop::Method(method) => {
-                                        //     // TODO: get path from load()
-                                        // }
+                                        Prop::Method(method) => {
+                                            if let Some(block_stmt) = &method.function.body {
+                                                import_path =
+                                                    get_import_path_block_stmt(block_stmt);
+                                            }
+                                        }
                                         _ => {}
                                     }
                                 }
                             }
-                            match import_path {
-                                Some(path) => {
-                                    add_id_option(object_arg, path, self.webpack);
-                                }
+                            if let Some(path) = import_path {
+                                add_id_option(object_arg, path, self.webpack);
+                            } else {
                                 // TODO: handle import path not found
-                                None => {}
                             }
                         }
                     }
@@ -169,23 +168,45 @@ fn add_id_option(object: &mut ObjectLit, path: String, webpack: bool) {
 
 fn get_import_path(expr: &Box<Expr>) -> Option<String> {
     match &**expr {
-        Expr::Arrow(arrow_expr) => {
-            match &arrow_expr.body {
-                BlockStmtOrExpr::Expr(body_expr) => {
-                    if let Expr::Call(call_expr) = &**body_expr {
-                        return get_import_path_from_import_call(call_expr);
-                    }
-                },
-                BlockStmtOrExpr::BlockStmt(_block_stmt) => {
-                    // TODO: handle fn expression
+        Expr::Arrow(arrow_expr) => match &arrow_expr.body {
+            BlockStmtOrExpr::Expr(body_expr) => {
+                if let Expr::Call(call_expr) = &**body_expr {
+                    return get_import_path_from_import_call(call_expr);
                 }
             }
+            BlockStmtOrExpr::BlockStmt(block_stmt) => {
+                return get_import_path_block_stmt(block_stmt);
+            }
+        },
+        Expr::Fn(FnExpr {
+            function:
+                Function {
+                    body: Some(block_stmt),
+                    ..
+                },
+            ..
+        }) => {
+            // TODO: fn expression
+            return get_import_path_block_stmt(block_stmt);
         }
-        // Expr::Fn(fn_expr) => {
-        //     // TODO: fn expression
-        // }
         _ => {}
     }
+    None
+}
+
+fn get_import_path_block_stmt(block_stmt: &BlockStmt) -> Option<String> {
+    // TODO: Improve function block parsing.
+    // Only checks if `return import..` matches last statment
+    if let Some(Stmt::Return(ReturnStmt {
+        arg: Some(return_arg),
+        ..
+    })) = block_stmt.stmts.last()
+    {
+        if let Expr::Call(call_expr) = &**return_arg {
+            return get_import_path_from_import_call(call_expr);
+        }
+    }
+
     None
 }
 
@@ -196,7 +217,6 @@ fn get_import_path_from_import_call(call_expr: &CallExpr) -> Option<String> {
                 if call_expr.args.len() == 0 {
                     // TODO: handle empty string
                 } else if let Expr::Lit(Lit::Str(Str { value, .. })) = &*call_expr.args[0].expr {
-                    println!("import??{}", value);
                     return Some(value.to_string());
                 }
             }
