@@ -12,8 +12,8 @@ const nativeBindings = loadBinding(
 async function transform(src, options = {}) {
   const isModule = typeof src !== "string";
 
-  if (options?.jsc?.parser) {
-    options.jsc.parser.syntax = options.jsc.parser.syntax ?? "ecmascript";
+  if (options && options.jsc && options.jsc.parser) {
+    options.jsc.parser.syntax = options.jsc.parser.syntax || "ecmascript";
   }
 
   return nativeBindings.transform(
@@ -26,8 +26,8 @@ async function transform(src, options = {}) {
 function transformSync(src, options = {}) {
   const isModule = typeof src !== "string";
 
-  if (options?.jsc?.parser) {
-    options.jsc.parser.syntax = options.jsc.parser.syntax ?? "ecmascript";
+  if (options && options.jsc && options.jsc.parser) {
+    options.jsc.parser.syntax = options.jsc.parser.syntax || "ecmascript";
   }
 
   return nativeBindings.transformSync(
