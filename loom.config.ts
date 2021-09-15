@@ -26,6 +26,8 @@ export default createPackage((pkg) => {
       packageBuild({
         browserTargets: "defaults",
         nodeTargets: "node 12.20",
+        esnext: false,
+        esmodules: false,
 
         /*
           We set this false because we are manually creating them

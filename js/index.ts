@@ -1,5 +1,4 @@
 import { join } from "path";
-import { existsSync } from "fs";
 
 import { loadBinding } from "@node-rs/helper";
 
@@ -9,11 +8,7 @@ export type { Source, Options };
 
 // grabs the appropriate native code for our platform
 // ("swcify" is the name defined in package.json)
-const nativeBindings = loadBinding(
-  join(getRootDir(), "native"),
-  "swcify",
-  "swcify"
-);
+const nativeBindings = loadBinding(getNativeBinaryDir(), "swcify", "swcify");
 
 export async function transform(src: Source, options: Options = {}) {
   const isModule = typeof src !== "string";
@@ -47,10 +42,11 @@ function toBuffer(raw: any) {
   return Buffer.from(JSON.stringify(raw));
 }
 
-function getRootDir(path = __dirname): string {
-  if (existsSync(join(path, "package.json"))) {
-    return path;
+function getNativeBinaryDir() {
+  // 💩 we know that in built code we are nested an extra level from root.
+  if (__dirname.endsWith("build/cjs")) {
+    return join(__dirname, "..", "..", "native");
   } else {
-    return getRootDir(join(path, ".."));
+    return join(__dirname, "..", "native");
   }
 }
