@@ -1,6 +1,6 @@
-/* eslint-env jest */
-const { trim, trimmed } = require("./tests/utilities");
-const { transformSync } = require(".");
+import { transformSync } from "..";
+
+import { trim, trimmed } from "./utilities";
 
 describe("swcify", () => {
   it("returns JS", () => {
