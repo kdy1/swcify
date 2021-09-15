@@ -20,12 +20,15 @@
   "napi": {
     "name": "swcify",
     "triples": {
-      "defaults": true
+      "defaults": true,
+      "additional": [
+        "x86_64-apple-darwin"
+      ]
     }
   },
   "scripts": {
     "test": "yarn jest",
-    "prepublishOnly": "yarn build:test",
+    "prepublishOnly": "rustup target add x86_64-apple-darwin && yarn napi build --target=x86_64-apple-darwin",
     "build": "napi build --platform --release native",
     "build:test": "rustup target add x86_64-apple-darwin && DEBUG=\"napi:*\" napi build --platform native",
     "build:debug": "napi build --platform native"
