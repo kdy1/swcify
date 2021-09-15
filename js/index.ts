@@ -1,4 +1,5 @@
 import { join } from "path";
+import { existsSync } from "fs";
 
 import { loadBinding } from "@node-rs/helper";
 
@@ -9,7 +10,7 @@ export type { Source, Options };
 // grabs the appropriate native code for our platform
 // ("swcify" is the name defined in package.json)
 const nativeBindings = loadBinding(
-  join(__dirname, "..", "native"),
+  join(getRootDir(), "native"),
   "swcify",
   "swcify"
 );
@@ -44,4 +45,12 @@ export function transformSync(src: Source, options: Options = {}) {
 
 function toBuffer(raw: any) {
   return Buffer.from(JSON.stringify(raw));
+}
+
+function getRootDir(path = __dirname): string {
+  if (existsSync(join(path, "package.json"))) {
+    return path;
+  } else {
+    return getRootDir(join(path, ".."));
+  }
 }

@@ -26,6 +26,12 @@ export default createPackage((pkg) => {
       packageBuild({
         browserTargets: "defaults",
         nodeTargets: "node 12.20",
+
+        /*
+          We set this false because we are manually creating them
+          (because otherwise they are created with invalid paths)
+        */
+        rootEntrypoints: false,
       }),
       jest(),
       eslint(),

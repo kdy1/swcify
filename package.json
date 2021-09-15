@@ -11,7 +11,7 @@
     "swcify.node",
     "native"
   ],
-  "main": "build/index.js",
+  "main": "index.js",
   "types": "build/index.d.ts",
   "napi": {
     "name": "swcify",
@@ -27,9 +27,10 @@
     "lint": "loom lint",
     "format": "loom format",
     "prepublishOnly": "rustup target add x86_64-apple-darwin && yarn build",
-    "build": "loom build && yarn build:native",
+    "build": "yarn build:js && yarn build:native",
     "build:native:optimized": "napi build --platform --release native",
-    "build:native": "rustup target add x86_64-apple-darwin && DEBUG=\"napi:*\" napi build --platform native"
+    "build:js": "loom build",
+    "build:native": "rustup target add x86_64-apple-darwin && napi build --platform native"
   },
   "dependencies": {
     "@node-rs/helper": "^1.2.1",
