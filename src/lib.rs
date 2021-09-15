@@ -21,6 +21,7 @@ use swc_common::{
 
 mod transform;
 mod util;
+mod async_transform;
 
 static COMPILER: Lazy<Arc<Compiler>> = Lazy::new(|| {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
