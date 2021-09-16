@@ -47,13 +47,13 @@ jobs:
           path: node_modules
           key: npm-cache-${{ matrix.os }}-node@14-${{ hashFiles('yarn.lock') }}
 
-      - name: "Install dependencies"
+      - name: 'Install dependencies'
         run: yarn install --frozen-lockfile --registry https://registry.npmjs.org --network-timeout 300000
 
-      - name: "Build"
+      - name: 'Build'
         run: yarn build:native
         env:
-          MACOSX_DEPLOYMENT_TARGET: "10.13"
+          MACOSX_DEPLOYMENT_TARGET: '10.13'
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -115,8 +115,8 @@ jobs:
         if: ${{ env.GITHUB_EVENT_NAME  == 'workflow_dispatch' }}
       - uses: EndBug/add-and-commit@v7
         with:
-          add: "native --force"
-          message: "Build swcify binaries"
+          add: 'native --force'
+          message: 'Build swcify binaries'
         if: ${{ env.GITHUB_EVENT_NAME  == 'workflow_dispatch' }}
 
   check:

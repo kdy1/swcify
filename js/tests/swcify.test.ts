@@ -1,17 +1,17 @@
-import { transformSync } from "..";
+import {transformSync} from '..';
 
-import { trim, trimmed } from "./utilities";
+import {trim, trimmed} from './utilities';
 
-describe("swcify", () => {
-  it("returns JS", () => {
-    const { code } = transformSync(
+describe('swcify', () => {
+  it('returns JS', () => {
+    const {code} = transformSync(
       trimmed`
       import {foo} from 'bar';
 
       export function helloWorld() {
         console.log("hi ", foo);
       }
-    `
+    `,
     );
 
     expect(trim(code)).toMatch(trimmed`
@@ -22,8 +22,8 @@ describe("swcify", () => {
   `);
   });
 
-  it("respects options", () => {
-    const { code } = transformSync(
+  it('respects options', () => {
+    const {code} = transformSync(
       trimmed`
       async function f() {
       }
@@ -31,11 +31,11 @@ describe("swcify", () => {
     `,
       {
         jsc: {
-          parser: { topLevelAwait: true },
-          target: "es2017",
+          parser: {topLevelAwait: true},
+          target: 'es2017',
           externalHelpers: true,
         },
-      }
+      },
     );
 
     expect(trim(code)).toMatch(trimmed`

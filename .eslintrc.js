@@ -2,9 +2,9 @@
 
 module.exports = {
   extends: [
-    "plugin:@shopify/typescript",
-    "plugin:@shopify/jest",
-    "plugin:@shopify/prettier",
+    'plugin:@shopify/typescript',
+    'plugin:@shopify/jest',
+    'plugin:@shopify/prettier',
   ],
-  ignorePatterns: ["build/**/*"],
+  ignorePatterns: ['build/**/*'],
 };
