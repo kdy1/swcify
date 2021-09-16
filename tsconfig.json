@@ -3,16 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "outDir": "./build/ts",
-    "pretty": true,
-    "jsx": "react",
-    "strict": true,
-    "importHelpers": true,
-    "skipLibCheck": false,
-    "esModuleInterop": true,
-    "strictNullChecks": true,
-    "emitDeclarationOnly": true
+    "outDir": "./build/ts"
   },
-  "include": ["js/*.ts", "**/*.test.ts", "**/*.test.ts"],
-  "exclude": ["./build"]
+  "include": ["js/*.ts"]
 }

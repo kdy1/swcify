@@ -6,13 +6,15 @@
     "access": "public"
   },
   "files": [
-    "index.d.ts",
+    "build/",
+    "!build/ts/**/*.tsbuildinfo",
+    "!build/ts/**/tests/",
     "index.js",
     "swcify.node",
     "native"
   ],
   "main": "index.js",
-  "types": "build/index.d.ts",
+  "types": "build/ts/index.d.ts",
   "napi": {
     "name": "swcify",
     "triples": {
@@ -33,12 +35,12 @@
     "build:native": "rustup target add x86_64-apple-darwin && napi build --platform native"
   },
   "dependencies": {
-    "@node-rs/helper": "^1.2.1",
-    "@shopify/loom-plugin-jest": "^0.6.0",
-    "@shopify/loom-plugin-typescript": "^0.8.0"
+    "@node-rs/helper": "^1.2.1"
   },
   "devDependencies": {
     "@napi-rs/cli": "^1.0.0",
+    "@shopify/loom-plugin-jest": "^0.6.0",
+    "@shopify/loom-plugin-typescript": "^0.8.0",
     "@shopify/babel-preset": "^24.1.4",
     "@shopify/eslint-plugin": "^40.4.0",
     "@shopify/loom": "^0.7.0",
