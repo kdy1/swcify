@@ -2,10 +2,10 @@ name: swcify
 type: node
 up:
   - node:
-      version: 12.21.0
+      version: '12.21.0'
       yarn: true
   - rust:
-      version: 1.55.0
+      version: 'nightly-2021-08-12'
 commands:
   __default__: build
   build:
