@@ -25,7 +25,7 @@
   "scripts": {
     "test": "loom test",
     "lint": "loom lint",
-    "format": "loom format",
+    "format": "loom lint --fix",
     "prepublishOnly": "rustup target add x86_64-apple-darwin && yarn build",
     "build": "yarn build:js && yarn build:native",
     "build:native:optimized": "napi build --platform --release native",
