@@ -134,7 +134,7 @@ impl Fold for AsyncTransform {
                                         Prop::KeyValue(key_val) => match &key_val.key {
                                             PropName::Ident(Ident { sym: key_sym, .. }) => {
                                                 if key_sym == "load" {
-                                                    import_path = get_import_path(&key_val.value);
+                                                    import_path = get_import_path_from_expr(&*key_val.value);
                                                 } else if key_sym == "id" {
                                                     // do nothing when id prop already exists
                                                     break;
@@ -145,7 +145,7 @@ impl Fold for AsyncTransform {
                                         Prop::Method(method) => {
                                             if let Some(block_stmt) = &method.function.body {
                                                 import_path =
-                                                    get_import_path_block_stmt(block_stmt);
+                                                    get_import_path_from_block_stmt(block_stmt);
                                             }
                                         }
                                         _ => {}
@@ -206,34 +206,6 @@ fn add_id_option(object: &mut ObjectLit, path: String, webpack: bool) {
     object.props.push(gen_arg);
 }
 
-fn get_import_path(expr: &Box<Expr>) -> Option<String> {
-    match &**expr {
-        Expr::Arrow(arrow_expr) => match &arrow_expr.body {
-            BlockStmtOrExpr::Expr(body_expr) => {
-                if let Expr::Call(call_expr) = &**body_expr {
-                    return get_import_path_from_import_call(call_expr);
-                }
-            }
-            BlockStmtOrExpr::BlockStmt(block_stmt) => {
-                return get_import_path_block_stmt(block_stmt);
-            }
-        },
-        Expr::Fn(FnExpr {
-            function:
-                Function {
-                    body: Some(block_stmt),
-                    ..
-                },
-            ..
-        }) => {
-            // TODO: fn expression
-            return get_import_path_block_stmt(block_stmt);
-        }
-        _ => {}
-    }
-    None
-}
-
 impl AsyncTransform {
     fn is_target_binding(&mut self, id: &Id) -> bool {
         if self.bindings.contains(id){
@@ -250,7 +222,35 @@ impl AsyncTransform {
     }
 }
 
-fn get_import_path_block_stmt(block_stmt: &BlockStmt) -> Option<String> {
+fn get_import_path_from_expr(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Arrow(arrow_expr) => match &arrow_expr.body {
+            BlockStmtOrExpr::Expr(body_expr) => {
+                if let Expr::Call(call_expr) = &**body_expr {
+                    return get_import_path_from_import_call(call_expr);
+                }
+            }
+            BlockStmtOrExpr::BlockStmt(block_stmt) => {
+                return get_import_path_from_block_stmt(block_stmt);
+            }
+        },
+        Expr::Fn(FnExpr {
+            function:
+                Function {
+                    body: Some(block_stmt),
+                    ..
+                },
+            ..
+        }) => {
+            // TODO: fn expression
+            return get_import_path_from_block_stmt(block_stmt);
+        }
+        _ => {}
+    }
+    None
+}
+
+fn get_import_path_from_block_stmt(block_stmt: &BlockStmt) -> Option<String> {
     // TODO: Improve function block parsing.
     // Only checks if `return import..` matches last statment
     if let Some(Stmt::Return(ReturnStmt {
