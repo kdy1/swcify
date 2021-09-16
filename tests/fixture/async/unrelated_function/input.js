@@ -1,13 +1,13 @@
-// import createResolver from '@shopify/async';
+import createResolver from '@shopify/async';
 
-// createResolver({
-//   load: () => import('./Foo'),
-// });
+{
+  const createResolver = UNRELATED_FUNCTION;
 
-// {
-//   const createResolver = UNRELATED_FUNCTION;
+  createResolver({
+    load: () => import('./Foo'),
+  });
+}
 
-//   createResolver({
-//     load: () => import('./Foo'),
-//   });
-// }
+createResolver({
+  load: () => import('./Foo'),
+});

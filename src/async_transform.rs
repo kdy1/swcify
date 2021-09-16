@@ -2,9 +2,10 @@ use std::collections::HashMap;
 
 use swc_common::DUMMY_SP;
 use swc_ecmascript::ast::{
-    ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Expr, ExprOrSpread, ExprOrSuper, FnExpr,
-    Function, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr, ObjectLit, Prop,
-    PropName, PropOrSpread, ReturnStmt, Stmt, Str, StrKind,
+    ArrowExpr, AssignExpr, BindingIdent, BlockStmt, BlockStmtOrExpr, CallExpr, Expr, ExprOrSpread,
+    ExprOrSuper, FnExpr, Function, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit,
+    MemberExpr, ObjectLit, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Str, StrKind, PatOrExpr,
+    VarDecl,
 };
 use swc_ecmascript::utils::ident::{Id, IdentLike};
 use swc_ecmascript::visit::{Fold, FoldWith};
@@ -45,6 +46,7 @@ pub fn async_transform() -> impl Fold {
         packages,
         webpack,
         bindings: vec![],
+        overridden_bindings: vec![vec![]],
     }
 }
 
@@ -53,6 +55,7 @@ struct AsyncTransform {
     packages: HashMap<String, Vec<String>>,
     webpack: bool,
     bindings: Vec<Id>,
+    overridden_bindings: Vec<Vec<Id>>,
 }
 
 impl Fold for AsyncTransform {
@@ -78,12 +81,49 @@ impl Fold for AsyncTransform {
         decl
     }
 
+    fn fold_block_stmt(&mut self, block: BlockStmt) -> BlockStmt {
+        self.overridden_bindings.push(vec![]);
+        let block = block.fold_children_with(self);
+        self.overridden_bindings.pop();
+        block
+    }
+
+    fn fold_assign_expr(&mut self, assign_expr: AssignExpr) -> AssignExpr {
+        let assign_expr = assign_expr.fold_children_with(self);
+        // Check if assignment overrides target import
+        if let PatOrExpr::Pat(pattern) = &assign_expr.left {
+            if let Pat::Ident(BindingIdent { id, .. }) = &**pattern {
+                if self.bindings.contains(&id.to_id()) {
+                    if let Some(block_overriden_bindings) = self.overridden_bindings.last_mut() {
+                        block_overriden_bindings.push(id.to_id());
+                    }
+                }
+            }
+        }
+        assign_expr
+    }
+
+    fn fold_var_decl(&mut self, var_decl: VarDecl) -> VarDecl {
+        let var_decl = var_decl.fold_children_with(self);
+        // Check if declaration overrides target import
+        for decl in var_decl.decls.iter() {
+        if let Pat::Ident(BindingIdent { id, .. }) = &decl.name {
+                if self.bindings.contains(&id.to_id()) {
+                    if let Some(block_overriden_bindings) = self.overridden_bindings.last_mut() {
+                        block_overriden_bindings.push(id.to_id());
+                    }
+                }
+            }
+        }
+        var_decl
+    }
+
     fn fold_call_expr(&mut self, expr: CallExpr) -> CallExpr {
         let mut expr = expr.fold_children_with(self);
 
         if let ExprOrSuper::Expr(i) = &expr.callee {
             if let Expr::Ident(identifier) = &**i {
-                if self.bindings.contains(&identifier.to_id()) {
+                if self.is_target_binding(&identifier.to_id()) {
                     // TODO: emit error if invalid arg lengths
                     if expr.args.len() == 1 {
                         if let Expr::Object(object_arg) = &mut *expr.args[0].expr {
@@ -194,6 +234,22 @@ fn get_import_path(expr: &Box<Expr>) -> Option<String> {
     None
 }
 
+impl AsyncTransform {
+    fn is_target_binding(&mut self, id: &Id) -> bool {
+        if self.bindings.contains(id){
+            for block_overridden_bindings in self.overridden_bindings.iter() {
+                for overridden_binding in block_overridden_bindings.iter() {
+                    if overridden_binding == id {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        false
+    }
+}
+
 fn get_import_path_block_stmt(block_stmt: &BlockStmt) -> Option<String> {
     // TODO: Improve function block parsing.
     // Only checks if `return import..` matches last statment
@@ -206,7 +262,6 @@ fn get_import_path_block_stmt(block_stmt: &BlockStmt) -> Option<String> {
             return get_import_path_from_import_call(call_expr);
         }
     }
-
     None
 }
 
