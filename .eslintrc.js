@@ -6,5 +6,4 @@ module.exports = {
     'plugin:@shopify/jest',
     'plugin:@shopify/prettier',
   ],
-  ignorePatterns: ['build/**/*'],
 };

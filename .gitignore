@@ -1,7 +1,6 @@
+node_modules
+/.loom
+/build
 /target
 /native
-node_modules
-*.node
-build
-.loom
 yarn-error.log
