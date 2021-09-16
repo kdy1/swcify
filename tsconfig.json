@@ -3,7 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "outDir": "./build/ts"
+    "outDir": "./build/ts",
+    "incremental": true,
+    "emitDeclarationOnly": true
   },
   "include": ["js/*.ts"]
 }
