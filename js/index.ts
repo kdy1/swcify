@@ -1,4 +1,5 @@
 import {join} from 'path';
+import {existsSync} from 'fs';
 
 import {loadBinding} from '@node-rs/helper';
 
@@ -44,9 +45,12 @@ function toBuffer(raw: any) {
 
 function getNativeBinaryDir() {
   // 💩 we know that in built code we are nested an extra level from root.
-  if (__dirname.endsWith('build/cjs')) {
-    return join(__dirname, '..', '..', 'native');
-  } else {
-    return join(__dirname, '..', 'native');
-  }
+  const pathToRoot = __dirname.endsWith('build/cjs')
+    ? join(__dirname, '..', '..')
+    : join(__dirname, '..');
+
+  // use the temp gitignored local builds if we have them otherwise use the canonical builds
+  return existsSync(join(pathToRoot, 'native-dev'))
+    ? join(pathToRoot, 'native-dev')
+    : join(pathToRoot, 'native');
 }
