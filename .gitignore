@@ -4,4 +4,3 @@ node_modules
 /target
 /native-dev
 yarn-error.log
-./*.node
