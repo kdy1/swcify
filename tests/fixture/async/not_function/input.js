@@ -1,4 +1,4 @@
-import createResolver from "@shopify/async";
+import createResolver from '@shopify/async';
 
 createResolver({
   ...otherOptions,

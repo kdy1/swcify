@@ -1,5 +1,5 @@
 import createResolver from 'unrelated-package';
 
 createResolver({
-    load: () => import('../SomeComponent'),
-  });
+  load: () => import('../SomeComponent'),
+});

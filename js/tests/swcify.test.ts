@@ -1,9 +1,10 @@
 /* eslint-env jest */
-import {trim, trimmed} from './utilities';
 import {transform} from '..';
 
+import {trim, trimmed} from './utilities';
+
 const swc = async (code, options?) => {
-  let output = await transform(code, options);
+  const output = await transform(code, options);
   return output.code;
 };
 
@@ -66,7 +67,7 @@ describe('async transform', () => {
         import { ${defaultImport} } from '${defaultPackage}';
   
         ${defaultImport}({
-          load: ()=> import(\"./Foo\"),
+          load: ()=> import("./Foo"),
         });
       `);
     expect(
@@ -82,9 +83,9 @@ describe('async transform', () => {
         import { ${defaultImport} } from '${defaultPackage}';
   
         ${defaultImport}({
-              load: ()=>import(\"./Foo\")
+              load: ()=>import("./Foo")
               ,
-              id: ()=>require.resolveWeak(\"./Foo\")
+              id: ()=>require.resolveWeak("./Foo")
         });
       `),
     );

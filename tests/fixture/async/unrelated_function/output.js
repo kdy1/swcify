@@ -1,7 +1,6 @@
 import createResolver from '@shopify/async';
 
 {
-  
   const createResolver = UNRELATED_FUNCTION;
 
   createResolver({
@@ -11,5 +10,5 @@ import createResolver from '@shopify/async';
 
 createResolver({
   load: () => import('./Foo'),
-  id: ()=>require.resolveWeak("./Foo")
+  id: () => require.resolveWeak('./Foo'),
 });

@@ -1,6 +1,6 @@
 import createResolver from '@shopify/async';
 
 createResolver({
-    load: () => import('../SomeComponent'),
-    id: () => require.resolveWeak('../SomeComponent'),
-  });
+  load: () => import('../SomeComponent'),
+  id: () => require.resolveWeak('../SomeComponent'),
+});

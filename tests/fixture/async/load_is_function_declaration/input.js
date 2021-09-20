@@ -1,5 +1,7 @@
-import createResolver from "@shopify/async";
+import createResolver from '@shopify/async';
 
 createResolver({
-  load: function load() { return import('./Foo'); },
+  load: function load() {
+    return import('./Foo');
+  },
 });
