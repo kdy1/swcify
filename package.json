@@ -10,6 +10,7 @@
     "!build/ts/**/*.tsbuildinfo",
     "!build/ts/**/tests/",
     "index.js",
+    "jest.js",
     "swcify.node",
     "dist",
     "dev"
