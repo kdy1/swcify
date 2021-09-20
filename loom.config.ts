@@ -9,6 +9,7 @@ import {jest} from '@shopify/loom-plugin-jest';
 export default createPackage((pkg) => {
   pkg.runtimes(Runtime.Node);
   pkg.entry({root: './js/index'});
+  pkg.entry({root: './js/jest'});
 
   try {
     pkg.use(
