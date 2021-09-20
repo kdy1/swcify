@@ -7,9 +7,9 @@ import type {Source, Options} from './types';
 
 export type {Source, Options};
 
-// grabs the appropriate native code for our platform
+// grabs the appropriate dist code for our platform
 // ("swcify" is the name defined in package.json)
-const nativeBindings = loadBinding(getNativeBinaryDir(), 'swcify', 'swcify');
+const bindings = loadBinding(getBinaryDir(), 'swcify', 'swcify');
 
 export async function transform(src: Source, options: Options = {}) {
   const isModule = typeof src !== 'string';
@@ -18,7 +18,7 @@ export async function transform(src: Source, options: Options = {}) {
     options.jsc.parser.syntax = options.jsc.parser.syntax || 'ecmascript';
   }
 
-  return nativeBindings.transform(
+  return bindings.transform(
     isModule ? JSON.stringify(src) : src,
     isModule,
     toBuffer(options),
@@ -32,7 +32,7 @@ export function transformSync(src: Source, options: Options = {}) {
     options.jsc.parser.syntax = options.jsc.parser.syntax || 'ecmascript';
   }
 
-  return nativeBindings.transformSync(
+  return bindings.transformSync(
     isModule ? JSON.stringify(src) : src,
     isModule,
     toBuffer(options),
@@ -43,14 +43,14 @@ function toBuffer(raw: any) {
   return Buffer.from(JSON.stringify(raw));
 }
 
-function getNativeBinaryDir() {
+function getBinaryDir() {
   // 💩 we know that in built code we are nested an extra level from root.
   const pathToRoot = __dirname.endsWith('build/cjs')
     ? join(__dirname, '..', '..')
     : join(__dirname, '..');
 
   // use the temp gitignored local builds if we have them otherwise use the canonical builds
-  return existsSync(join(pathToRoot, 'native-dev'))
-    ? join(pathToRoot, 'native-dev')
-    : join(pathToRoot, 'native');
+  return existsSync(join(pathToRoot, 'dev'))
+    ? join(pathToRoot, 'dev')
+    : join(pathToRoot, 'dist');
 }

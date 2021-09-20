@@ -1,6 +1,6 @@
 ## SWCify
 
-[![Build native binaries](https://github.com/Shopify/swcify/actions/workflows/build_and_commit_binaries.yml/badge.svg)](https://github.com/Shopify/swcify/actions/workflows/build_and_commit_binaries.yml)
+[![Build dist binaries](https://github.com/Shopify/swcify/actions/workflows/build_and_commit_binaries.yml/badge.svg)](https://github.com/Shopify/swcify/actions/workflows/build_and_commit_binaries.yml)
 [![JS tests](https://github.com/Shopify/swcify/actions/workflows/js_test.yml/badge.svg)](https://github.com/Shopify/swcify/actions/workflows/js_test.yml)
 [Shipit](https://shipit.shopify.io/shopify/swcify/production)
 
@@ -24,4 +24,4 @@ This package is currently not deployed anywhere, so there is a fairly manual pro
 
 ### Running JS tests
 
-You can run tests against JS changes without building using `yarn test`, but if you want to E2E test rust changes make sure to use `yarn build:rust native-dev` first.
+You can run tests against JS changes without building using `yarn test`, but if you want to E2E test rust changes make sure to use `yarn build:rust dev` first.

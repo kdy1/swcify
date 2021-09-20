@@ -11,8 +11,8 @@
     "!build/ts/**/tests/",
     "index.js",
     "swcify.node",
-    "native",
-    "native-dev"
+    "dist",
+    "dev"
   ],
   "main": "index.js",
   "types": "build/ts/index.d.ts",
@@ -31,9 +31,9 @@
     "lint": "loom lint",
     "format": "loom lint --fix",
     "prepublishOnly": "yarn build:js",
-    "preyalcpubish": "yarn build:rust native-dev",
-    "build": "yarn build:js && yarn build:rust native-dev",
-    "build:ci": "yarn build:js && yarn build:rust native",
+    "preyalcpubish": "yarn build:rust dev",
+    "build": "yarn build:js && yarn build:rust dev",
+    "build:ci": "yarn build:js && yarn build:rust dist",
     "build:rust": "napi build --platform",
     "build:js": "loom build"
   },

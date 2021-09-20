@@ -1,9 +1,9 @@
 on: workflow_dispatch
 
-name: Build and commit swcify native binaries
+name: Build and commit swcify dist binaries
 
 jobs:
-  build-native:
+  build-dist:
     strategy:
       matrix:
         os: [ubuntu-18.04, macos-latest, windows-latest]
@@ -49,11 +49,11 @@ jobs:
         with:
           path: ~/.cargo/git
           key: stable-${{ matrix.os }}-node@12-cargo-index-trimmed-${{ hashFiles('**/Cargo.lock') }}
-      - name: Cache native binary
+      - name: Cache dist binary
         id: binary-cache
         uses: actions/cache@v2
         with:
-          path: native/**
+          path: dist/**
           key: swcify-nightly-2021-08-12-${{ matrix.target }}-${{ hashFiles('.github/workflows/build_and_commit_binaries.yml', 'src') }}
       - name: Cross build aarch64 setup
         if: ${{ matrix.target == 'aarch64-apple-darwin' && steps.docs-change.outputs.DOCS_CHANGE != 'docs only change' }}
@@ -65,20 +65,20 @@ jobs:
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
       - name: 'Build'
         if: steps.binary-cache.outputs.cache-hit != true
-        run: yarn build:rust --release --target ${{ matrix.target }} native
+        run: yarn build:rust --release --target ${{ matrix.target }} dist
         env:
           MACOSX_DEPLOYMENT_TARGET: '10.13'
       - name: Upload artifact
         uses: actions/upload-artifact@v2.2.4
         with:
           name: swcify-binaries
-          path: native/swcify.${{ matrix.name }}.node
+          path: dist/swcify.${{ matrix.name }}.node
       - name: Clear the cargo caches
         run: |
           cargo install cargo-cache --no-default-features --features ci-autoclean
           cargo-cache
   commit:
-    needs: build-native
+    needs: build-dist
     runs-on: ubuntu-18.04
 
     steps:
@@ -86,8 +86,8 @@ jobs:
       - uses: actions/download-artifact@v2.0.10
         with:
           name: swcify-binaries
-          path: native
+          path: dist
       - uses: EndBug/add-and-commit@v7
         with:
-          add: 'native --force'
+          add: 'dist --force'
           message: 'Build swcify binaries'
