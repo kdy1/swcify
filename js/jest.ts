@@ -6,45 +6,19 @@ import {Options} from './types';
 
 import {transformSync} from './index';
 
-interface JestConfig26 {
-  transform: [match: string, transformerPath: string, options: Options][];
-}
-
 interface JestConfig27 {
   transformerConfig: Options;
 }
 
 let memoizedOptions: Options;
-export function process(
-  src: string,
-  filename: string,
-  jestConfig: JestConfig26 | JestConfig27,
-) {
+function process(src: string, filename: string, jestConfig: JestConfig27) {
   if (memoizedOptions == null) {
-    const options = getInlineConfig(jestConfig) || swcRcConfig();
+    const options = jestConfig.transformerConfig || swcRcConfig();
     set(options, 'jsc.transform.hidden.jest', true);
     memoizedOptions = options;
   }
 
   return transformSync(src, {...memoizedOptions, filename});
-}
-
-function getInlineConfig(
-  jestConfig: JestConfig26 | JestConfig27,
-): Options | undefined {
-  if ('transformerConfig' in jestConfig) {
-    // jest 27
-    return jestConfig.transformerConfig;
-  }
-
-  if ('transform' in jestConfig) {
-    // jest 26
-    return jestConfig.transform.find(
-      ([, transformerPath]) => transformerPath === __filename,
-    )?.[2];
-  }
-
-  return undefined;
 }
 
 function swcRcConfig(): Options {
@@ -70,3 +44,5 @@ function set(obj: any, path: string, value: any) {
 
   currentTarget[key] = value;
 }
+
+module.exports = {process};
