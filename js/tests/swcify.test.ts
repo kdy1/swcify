@@ -1,17 +1,17 @@
 /* eslint-env jest */
-const { trim, trimmed } = require("./tests/utilities");
-const { transform } = require(".");
+import {trim, trimmed} from './utilities';
+import {transform} from '..';
 
-const swc = async (code, options) => {
+const swc = async (code, options?) => {
   let output = await transform(code, options);
   return output.code;
 };
 
-const defaultPackage = "@shopify/async";
-const defaultImport = "createResolver";
+const defaultPackage = '@shopify/async';
+const defaultImport = 'createResolver';
 
-describe("swcify", () => {
-  it("returns JS", async () => {
+describe('swcify', () => {
+  it('returns JS', async () => {
     const code = await swc(
       trimmed`
       import {foo} from 'bar';
@@ -19,7 +19,7 @@ describe("swcify", () => {
       export function helloWorld() {
         console.log("hi ", foo);
       }
-    `
+    `,
     );
     expect(trim(code)).toMatch(trimmed`
     import { foo } from 'bar';
@@ -29,7 +29,7 @@ describe("swcify", () => {
   `);
   });
 
-  it("respects options", async () => {
+  it('respects options', async () => {
     const code = await swc(
       trimmed`
       async function f() {
@@ -38,11 +38,11 @@ describe("swcify", () => {
     `,
       {
         jsc: {
-          parser: { topLevelAwait: true },
-          target: "es2017",
+          parser: {topLevelAwait: true},
+          target: 'es2017',
           externalHelpers: true,
         },
-      }
+      },
     );
 
     expect(trim(code)).toMatch(trimmed`
@@ -60,8 +60,8 @@ describe("swcify", () => {
   });
 });
 
-describe("async transform", () => {
-  it("adds an id prop that returns the require.resolveWeak of the first dynamic import in load", async () => {
+describe('async transform', () => {
+  it('adds an id prop that returns the require.resolveWeak of the first dynamic import in load', async () => {
     const code = trim(`
         import { ${defaultImport} } from '${defaultPackage}';
   
@@ -70,11 +70,13 @@ describe("async transform", () => {
         });
       `);
     expect(
-      trim(await swc(code, {
-        jsc: {
-          target: "es2020",
-        },
-      }))
+      trim(
+        await swc(code, {
+          jsc: {
+            target: 'es2020',
+          },
+        }),
+      ),
     ).toBe(
       trim(`
         import { ${defaultImport} } from '${defaultPackage}';
@@ -84,7 +86,7 @@ describe("async transform", () => {
               ,
               id: ()=>require.resolveWeak(\"./Foo\")
         });
-      `)
+      `),
     );
   });
 });

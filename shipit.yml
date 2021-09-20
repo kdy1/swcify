@@ -1,6 +1,6 @@
 tasks:
   diagnostics:
-    action: "Run Diagnostics"
-    description: "For testing stuff until we can build this lib"
+    action: 'Run Diagnostics'
+    description: 'For testing stuff until we can build this lib'
     steps:
       - rustup target list

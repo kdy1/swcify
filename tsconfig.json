@@ -1,0 +1,11 @@
+{
+  "extends": "@shopify/typescript-configs/library",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "outDir": "./build/ts",
+    "incremental": true,
+    "emitDeclarationOnly": true
+  },
+  "include": ["js/*.ts"]
+}
