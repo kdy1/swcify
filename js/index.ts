@@ -2,7 +2,7 @@ import {join} from 'path';
 
 import {loadBinding} from '@node-rs/helper';
 
-import type {Source, Options} from './types';
+import type {Source, Options, Output} from './types';
 
 export type {Source, Options};
 
@@ -10,7 +10,10 @@ export type {Source, Options};
 // ("swcify" is the name defined in package.json)
 const nativeBindings = loadBinding(getNativeBinaryDir(), 'swcify', 'swcify');
 
-export async function transform(src: Source, options: Options = {}) {
+export async function transform(
+  src: Source,
+  options: Options = {},
+): Promise<Output> {
   const isModule = typeof src !== 'string';
 
   if (options && options.jsc && options.jsc.parser) {
@@ -24,7 +27,7 @@ export async function transform(src: Source, options: Options = {}) {
   );
 }
 
-export function transformSync(src: Source, options: Options = {}) {
+export function transformSync(src: Source, options: Options = {}): Output {
   const isModule = typeof src !== 'string';
 
   if (options && options.jsc && options.jsc.parser) {
