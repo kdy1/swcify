@@ -4,8 +4,8 @@ use swc_common::DUMMY_SP;
 use swc_ecmascript::ast::{
     ArrowExpr, AssignExpr, BindingIdent, BlockStmt, BlockStmtOrExpr, CallExpr, Expr, ExprOrSpread,
     ExprOrSuper, FnExpr, Function, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit,
-    MemberExpr, ObjectLit, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Str, StrKind, PatOrExpr,
-    VarDecl,
+    MemberExpr, ObjectLit, Pat, PatOrExpr, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Str,
+    StrKind, VarDecl,
 };
 use swc_ecmascript::utils::ident::{Id, IdentLike};
 use swc_ecmascript::visit::{Fold, FoldWith};
@@ -105,7 +105,7 @@ impl Fold for AsyncTransform {
         let var_decl = var_decl.fold_children_with(self);
         // Check if declaration overrides target import
         for decl in var_decl.decls.iter() {
-        if let Pat::Ident(BindingIdent { id, .. }) = &decl.name {
+            if let Pat::Ident(BindingIdent { id, .. }) = &decl.name {
                 if self.bindings.contains(&id.to_id()) {
                     if let Some(block_overriden_bindings) = self.overridden_bindings.last_mut() {
                         block_overriden_bindings.push(id.to_id());
@@ -116,48 +116,19 @@ impl Fold for AsyncTransform {
         var_decl
     }
 
-    fn fold_call_expr(&mut self, expr: CallExpr) -> CallExpr {
-        let mut expr = expr.fold_children_with(self);
-
-        if let ExprOrSuper::Expr(i) = &expr.callee {
+    fn fold_call_expr(&mut self, call_expr: CallExpr) -> CallExpr {
+        let mut call_expr = call_expr.fold_children_with(self);
+        if let ExprOrSuper::Expr(i) = &call_expr.callee {
             if let Expr::Ident(identifier) = &**i {
                 if self.is_target_binding(&identifier.to_id()) {
-                    if expr.args.len() == 1 {
-                        if let Expr::Object(object_arg) = &mut *expr.args[0].expr {
-                            let mut import_path: Option<String> = None;
-                            for prop_spread in object_arg.props.iter() {
-                                if let PropOrSpread::Prop(prop) = prop_spread {
-                                    match &**prop {
-                                        Prop::KeyValue(key_val) => match &key_val.key {
-                                            PropName::Ident(Ident { sym: key_sym, .. }) => {
-                                                if key_sym == "load" {
-                                                    import_path = get_import_path_from_expr(&*key_val.value);
-                                                } else if key_sym == "id" {
-                                                    // do nothing when id prop already exists
-                                                    break;
-                                                }
-                                            }
-                                            _ => {}
-                                        },
-                                        Prop::Method(method) => {
-                                            if let Some(block_stmt) = &method.function.body {
-                                                import_path =
-                                                    get_import_path_from_block_stmt(block_stmt);
-                                            }
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                            }
-                            if let Some(path) = import_path {
-                                add_id_option(object_arg, path, self.webpack);
-                            } 
-                        }
-                    } 
+                    let rewrite_result = rewrite_call_expr(&mut call_expr, self.webpack);
+                    if let Err(()) = rewrite_result {
+                        // skip rewrite failures
+                    }
                 }
             }
         }
-        expr
+        call_expr
     }
 }
 
@@ -203,7 +174,7 @@ fn add_id_option(object: &mut ObjectLit, path: String, webpack: bool) {
 
 impl AsyncTransform {
     fn is_target_binding(&mut self, id: &Id) -> bool {
-        if self.bindings.contains(id){
+        if self.bindings.contains(id) {
             for block_overridden_bindings in self.overridden_bindings.iter() {
                 for overridden_binding in block_overridden_bindings.iter() {
                     if overridden_binding == id {
@@ -217,29 +188,77 @@ impl AsyncTransform {
     }
 }
 
-fn get_import_path_from_expr(expr: &Expr) -> Option<String> {
-    match expr {
-        Expr::Arrow(arrow_expr) => match &arrow_expr.body {
-            BlockStmtOrExpr::Expr(body_expr) => {
-                if let Expr::Call(call_expr) = &**body_expr {
-                    return get_import_path_from_import_call(call_expr);
+fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> Result<(), ()> {
+    if call_expr.args.len() == 0 {
+        return Err(());
+    }
+    if let Expr::Object(object_arg) = &mut *call_expr.args[0].expr {
+        let mut import_path: Option<String> = None;
+        for prop_spread in object_arg.props.iter() {
+            if let PropOrSpread::Prop(prop) = prop_spread {
+                match &**prop {
+                    Prop::KeyValue(key_val) => {
+                        match &key_val.key {
+                            PropName::Ident(Ident { sym: key_sym, .. }) => {
+                                if key_sym == "load" {
+                                    import_path = match &*key_val.value {
+                                        Expr::Arrow(arrow_expr) => {
+                                            get_import_path_from_arrow_expr(arrow_expr)
+                                        }
+                                        Expr::Fn(fn_expr) => {
+                                            get_import_path_from_function_expr(fn_expr)
+                                        }
+                                        _ => None,
+                                    };
+                                } else if key_sym == "id" {
+                                    // do nothing when id prop already exists
+                                    return Ok(());
+                                }
+                            }
+                            _ => return Err(()),
+                        }
+                    }
+                    Prop::Method(method) => {
+                        if let Some(block_stmt) = &method.function.body {
+                            import_path = get_import_path_from_block_stmt(block_stmt);
+                        }
+                    }
+                    _ => return Err(()),
                 }
             }
-            BlockStmtOrExpr::BlockStmt(block_stmt) => {
-                return get_import_path_from_block_stmt(block_stmt);
+        }
+        if let Some(path) = import_path {
+            add_id_option(object_arg, path, webpack);
+            return Ok(());
+        }
+    }
+    Err(())
+}
+
+fn get_import_path_from_arrow_expr(arrow_expr: &ArrowExpr) -> Option<String> {
+    match &arrow_expr.body {
+        BlockStmtOrExpr::Expr(body_expr) => {
+            if let Expr::Call(call_expr) = &**body_expr {
+                return get_import_path_from_import_call(call_expr);
             }
-        },
-        Expr::Fn(FnExpr {
-            function:
-                Function {
-                    body: Some(block_stmt),
-                    ..
-                },
-            ..
-        }) => {
+        }
+        BlockStmtOrExpr::BlockStmt(block_stmt) => {
             return get_import_path_from_block_stmt(block_stmt);
         }
-        _ => {}
+    }
+    None
+}
+
+fn get_import_path_from_function_expr(fn_expr: &FnExpr) -> Option<String> {
+    if let FnExpr {
+        function: Function {
+            body: Some(block_stmt),
+            ..
+        },
+        ..
+    } = fn_expr
+    {
+        return get_import_path_from_block_stmt(block_stmt);
     }
     None
 }
