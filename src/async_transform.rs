@@ -11,7 +11,6 @@ use swc_ecmascript::utils::ident::{Id, IdentLike};
 use swc_ecmascript::visit::{Fold, FoldWith};
 
 pub fn async_transform() -> impl Fold {
-    // TODO: take non default packages as option
     // Default packages to process
     let packages: HashMap<String, Vec<String>> = [
         (
@@ -40,7 +39,6 @@ pub fn async_transform() -> impl Fold {
     .iter()
     .cloned()
     .collect();
-    // TODO: take webpack bool as option
     let webpack = true;
     AsyncTransform {
         packages,
@@ -124,7 +122,6 @@ impl Fold for AsyncTransform {
         if let ExprOrSuper::Expr(i) = &expr.callee {
             if let Expr::Ident(identifier) = &**i {
                 if self.is_target_binding(&identifier.to_id()) {
-                    // TODO: emit error if invalid arg lengths
                     if expr.args.len() == 1 {
                         if let Expr::Object(object_arg) = &mut *expr.args[0].expr {
                             let mut import_path: Option<String> = None;
@@ -154,11 +151,9 @@ impl Fold for AsyncTransform {
                             }
                             if let Some(path) = import_path {
                                 add_id_option(object_arg, path, self.webpack);
-                            } else {
-                                // TODO: handle import path not found
-                            }
+                            } 
                         }
-                    }
+                    } 
                 }
             }
         }
@@ -242,7 +237,6 @@ fn get_import_path_from_expr(expr: &Expr) -> Option<String> {
                 },
             ..
         }) => {
-            // TODO: fn expression
             return get_import_path_from_block_stmt(block_stmt);
         }
         _ => {}
@@ -251,8 +245,7 @@ fn get_import_path_from_expr(expr: &Expr) -> Option<String> {
 }
 
 fn get_import_path_from_block_stmt(block_stmt: &BlockStmt) -> Option<String> {
-    // TODO: Improve function block parsing.
-    // Only checks if `return import..` matches last statment
+    // Checks if `return import..` matches last statment
     if let Some(Stmt::Return(ReturnStmt {
         arg: Some(return_arg),
         ..
@@ -269,9 +262,7 @@ fn get_import_path_from_import_call(call_expr: &CallExpr) -> Option<String> {
     if let ExprOrSuper::Expr(e) = &call_expr.callee {
         if let Expr::Ident(Ident { sym, .. }) = &**e {
             if sym == "import" {
-                if call_expr.args.len() == 0 {
-                    // TODO: handle empty string
-                } else if let Expr::Lit(Lit::Str(Str { value, .. })) = &*call_expr.args[0].expr {
+                if let Expr::Lit(Lit::Str(Str { value, .. })) = &*call_expr.args[0].expr {
                     return Some(value.to_string());
                 }
             }
