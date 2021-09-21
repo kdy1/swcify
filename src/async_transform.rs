@@ -174,17 +174,16 @@ fn add_id_option(object: &mut ObjectLit, path: String, webpack: bool) {
 
 impl AsyncTransform {
     fn is_target_binding(&mut self, id: &Id) -> bool {
-        if self.bindings.contains(id) {
-            for block_overridden_bindings in self.overridden_bindings.iter() {
-                for overridden_binding in block_overridden_bindings.iter() {
-                    if overridden_binding == id {
-                        return false;
-                    }
-                }
-            }
-            return true;
+        if !self.bindings.contains(id) {
+            return false;
         }
-        false
+        !self.overridden_bindings
+            .iter()
+            .any(|block_overridden_bindings| {
+                block_overridden_bindings
+                    .iter()
+                    .any(|binding| binding == id)
+            })
     }
 }
 
