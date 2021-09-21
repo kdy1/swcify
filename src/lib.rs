@@ -8,6 +8,7 @@
 extern crate napi_derive;
 /// Explicit extern crate to use allocator.
 extern crate swc_node_base;
+extern crate maplit;
 
 use backtrace::Backtrace;
 use napi::{CallContext, Env, JsObject, JsUndefined};

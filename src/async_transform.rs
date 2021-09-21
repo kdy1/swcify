@@ -9,36 +9,19 @@ use swc_ecmascript::ast::{
 };
 use swc_ecmascript::utils::ident::{Id, IdentLike};
 use swc_ecmascript::visit::{Fold, FoldWith};
+use maplit::hashmap;
+
 
 pub fn async_transform() -> impl Fold {
+
     // Default packages to process
-    let packages: HashMap<String, Vec<String>> = [
-        (
-            "@shopify/alpaql/async".to_string(),
-            vec!["createAsyncQuery".to_string()],
-        ),
-        (
-            "@shopify/async".to_string(),
-            vec!["createResolver".to_string()],
-        ),
-        (
-            "@shopify/react-async".to_string(),
-            vec![
-                "createAsyncContext".to_string(),
-                "createAsyncComponent".to_string(),
-            ],
-        ),
-        (
-            "@shopify/react-graphql".to_string(),
-            vec![
-                "createAsyncQueryComponent".to_string(),
-                "createAsyncQuery".to_string(),
-            ],
-        ),
-    ]
-    .iter()
-    .cloned()
-    .collect();
+    let packages: HashMap<String, Vec<String>> = hashmap! {
+        String::from("@shopify/alpaql/async") => vec![String::from("createAsyncQuery")],
+        String::from("@shopify/async") => vec![String::from("createResolver")],
+        String::from("@shopify/react-async") => vec![String::from("createAsyncContext"), String::from("createAsyncComponent")],
+        String::from("@shopify/react-graphql") => vec![String::from("createAsyncQueryComponent"), String::from("createAsyncQuery")],
+    };
+    
     let webpack = true;
     AsyncTransform {
         packages,
