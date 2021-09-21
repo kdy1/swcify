@@ -121,10 +121,7 @@ impl Fold for AsyncTransform {
         if let ExprOrSuper::Expr(i) = &call_expr.callee {
             if let Expr::Ident(identifier) = &**i {
                 if self.is_target_binding(&identifier.to_id()) {
-                    let rewrite_result = rewrite_call_expr(&mut call_expr, self.webpack);
-                    if let Err(()) = rewrite_result {
-                        // skip rewrite failures
-                    }
+                    rewrite_call_expr(&mut call_expr, self.webpack);
                 }
             }
         }
@@ -187,9 +184,9 @@ impl AsyncTransform {
     }
 }
 
-fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> Result<(), ()> {
+fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> () {
     if call_expr.args.len() == 0 {
-        return Err(());
+        return;
     }
     if let Expr::Object(object_arg) = &mut *call_expr.args[0].expr {
         let mut import_path: Option<String> = None;
@@ -211,10 +208,10 @@ fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> Result<(), ()> 
                                     };
                                 } else if key_sym == "id" {
                                     // do nothing when id prop already exists
-                                    return Ok(());
+                                    return ();
                                 }
                             }
-                            _ => return Err(()),
+                            _ => return,
                         }
                     }
                     Prop::Method(method) => {
@@ -222,16 +219,15 @@ fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> Result<(), ()> 
                             import_path = get_import_path_from_block_stmt(block_stmt);
                         }
                     }
-                    _ => return Err(()),
+                    _ => return,
                 }
             }
         }
         if let Some(path) = import_path {
             add_id_option(object_arg, path, webpack);
-            return Ok(());
+            return ();
         }
     }
-    Err(())
 }
 
 fn get_import_path_from_arrow_expr(arrow_expr: &ArrowExpr) -> Option<String> {
