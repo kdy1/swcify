@@ -2,24 +2,24 @@ import {cwd} from 'process';
 import {existsSync, readFileSync} from 'fs';
 import {join} from 'path';
 
+import type {Transformer} from '@jest/transform';
+
 import {Options} from './types';
 
 import {transformSync} from './index';
 
-interface JestConfig27 {
-  transformerConfig: Options;
-}
-
 let memoizedOptions: Options;
-function process(src: string, filename: string, jestConfig: JestConfig27) {
-  if (memoizedOptions == null) {
-    const options = jestConfig.transformerConfig || swcRcConfig();
-    set(options, 'jsc.transform.hidden.jest', true);
-    memoizedOptions = options;
-  }
+const transformer: Transformer<Options> = {
+  process(src, filename, jestConfig) {
+    if (memoizedOptions == null) {
+      const options = jestConfig.transformerConfig || swcRcConfig();
+      set(options, 'jsc.transform.hidden.jest', true);
+      memoizedOptions = options;
+    }
 
-  return transformSync(src, {...memoizedOptions, filename});
-}
+    return transformSync(src, {...memoizedOptions, filename});
+  },
+};
 
 function swcRcConfig(): Options {
   const swcrc = join(cwd(), '.swcrc');
@@ -45,4 +45,4 @@ function set(obj: any, path: string, value: any) {
   currentTarget[key] = value;
 }
 
-module.exports = {process};
+export default transformer;
