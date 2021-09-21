@@ -89,8 +89,8 @@ impl Fold for AsyncTransform {
     fn fold_assign_expr(&mut self, assign_expr: AssignExpr) -> AssignExpr {
         let assign_expr = assign_expr.fold_children_with(self);
         // Check if assignment overrides target import
-        if let PatOrExpr::Pat(pattern) = &assign_expr.left {
-            if let Pat::Ident(BindingIdent { id, .. }) = &**pattern {
+        if let PatOrExpr::Pat(pattern) = assign_expr.left.clone() {
+            if let Pat::Ident(BindingIdent { id, .. }) = &*pattern {
                 if self.bindings.contains(&id.to_id()) {
                     if let Some(block_overriden_bindings) = self.overridden_bindings.last_mut() {
                         block_overriden_bindings.push(id.to_id());
@@ -118,8 +118,8 @@ impl Fold for AsyncTransform {
 
     fn fold_call_expr(&mut self, call_expr: CallExpr) -> CallExpr {
         let mut call_expr = call_expr.fold_children_with(self);
-        if let ExprOrSuper::Expr(i) = &call_expr.callee {
-            if let Expr::Ident(identifier) = &**i {
+        if let ExprOrSuper::Expr(i) = call_expr.callee.clone() {
+            if let Expr::Ident(identifier) = &*i {
                 if self.is_target_binding(&identifier.to_id()) {
                     rewrite_call_expr(&mut call_expr, self.webpack);
                 }
@@ -191,22 +191,22 @@ fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> () {
     if let Expr::Object(object_arg) = &mut *call_expr.args[0].expr {
         let mut import_path: Option<String> = None;
         for prop_spread in object_arg.props.iter() {
-            if let PropOrSpread::Prop(prop) = prop_spread {
-                match &**prop {
+            if let PropOrSpread::Prop(prop) = prop_spread.clone() {
+                match *prop {
                     Prop::KeyValue(key_val) => {
-                        match &key_val.key {
+                        match key_val.key {
                             PropName::Ident(Ident { sym: key_sym, .. }) => {
-                                if key_sym == "load" {
-                                    import_path = match &*key_val.value {
+                                if &key_sym == "load" {
+                                    import_path = match *key_val.value {
                                         Expr::Arrow(arrow_expr) => {
                                             get_import_path_from_arrow_expr(arrow_expr)
                                         }
                                         Expr::Fn(fn_expr) => {
-                                            get_import_path_from_function_expr(fn_expr)
+                                            get_import_path_from_function_expr(fn_expr.clone())
                                         }
                                         _ => None,
                                     };
-                                } else if key_sym == "id" {
+                                } else if &key_sym == "id" {
                                     // do nothing when id prop already exists
                                     return ();
                                 }
@@ -215,7 +215,7 @@ fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> () {
                         }
                     }
                     Prop::Method(method) => {
-                        if let Some(block_stmt) = &method.function.body {
+                        if let Some(block_stmt) = method.function.body {
                             import_path = get_import_path_from_block_stmt(block_stmt);
                         }
                     }
@@ -230,10 +230,10 @@ fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> () {
     }
 }
 
-fn get_import_path_from_arrow_expr(arrow_expr: &ArrowExpr) -> Option<String> {
-    match &arrow_expr.body {
+fn get_import_path_from_arrow_expr(arrow_expr: ArrowExpr) -> Option<String> {
+    match arrow_expr.body {
         BlockStmtOrExpr::Expr(body_expr) => {
-            if let Expr::Call(call_expr) = &**body_expr {
+            if let Expr::Call(call_expr) = *body_expr {
                 return get_import_path_from_import_call(call_expr);
             }
         }
@@ -244,7 +244,7 @@ fn get_import_path_from_arrow_expr(arrow_expr: &ArrowExpr) -> Option<String> {
     None
 }
 
-fn get_import_path_from_function_expr(fn_expr: &FnExpr) -> Option<String> {
+fn get_import_path_from_function_expr(fn_expr: FnExpr) -> Option<String> {
     if let FnExpr {
         function: Function {
             body: Some(block_stmt),
@@ -258,25 +258,25 @@ fn get_import_path_from_function_expr(fn_expr: &FnExpr) -> Option<String> {
     None
 }
 
-fn get_import_path_from_block_stmt(block_stmt: &BlockStmt) -> Option<String> {
+fn get_import_path_from_block_stmt(block_stmt: BlockStmt) -> Option<String> {
     // Checks if `return import..` matches last statment
     if let Some(Stmt::Return(ReturnStmt {
         arg: Some(return_arg),
         ..
-    })) = block_stmt.stmts.last()
+    })) = &block_stmt.stmts.last()
     {
-        if let Expr::Call(call_expr) = &**return_arg {
+        if let Expr::Call(call_expr) = *return_arg.clone() {
             return get_import_path_from_import_call(call_expr);
         }
     }
     None
 }
 
-fn get_import_path_from_import_call(call_expr: &CallExpr) -> Option<String> {
-    if let ExprOrSuper::Expr(e) = &call_expr.callee {
-        if let Expr::Ident(Ident { sym, .. }) = &**e {
-            if sym == "import" {
-                if let Expr::Lit(Lit::Str(Str { value, .. })) = &*call_expr.args[0].expr {
+fn get_import_path_from_import_call(call_expr: CallExpr) -> Option<String> {
+    if let ExprOrSuper::Expr(e) = call_expr.callee {
+        if let Expr::Ident(Ident { sym, .. }) = *e {
+            if &sym == "import" {
+                if let Expr::Lit(Lit::Str(Str { value, .. })) = *call_expr.args[0].expr.clone() {
                     return Some(value.to_string());
                 }
             }
