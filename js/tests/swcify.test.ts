@@ -31,7 +31,10 @@ describe('swcify', () => {
     `,
       {
         jsc: {
-          parser: {topLevelAwait: true},
+          parser: {
+            syntax: 'ecmascript',
+            topLevelAwait: true,
+          },
           target: 'es2017',
           externalHelpers: true,
         },
