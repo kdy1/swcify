@@ -3,4 +3,5 @@ node_modules
 /build
 /target
 /native-dev
+/dev
 yarn-error.log

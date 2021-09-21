@@ -10,6 +10,7 @@
     "!build/ts/**/*.tsbuildinfo",
     "!build/ts/**/tests/",
     "index.js",
+    "jest.js",
     "swcify.node",
     "dist",
     "dev"
@@ -38,6 +39,7 @@
     "build:js": "loom build"
   },
   "dependencies": {
+    "@jest/transform": "^27.2.1",
     "@node-rs/helper": "^1.2.1"
   },
   "devDependencies": {
