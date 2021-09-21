@@ -65,7 +65,7 @@ jobs:
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
       - name: 'Build'
         if: steps.binary-cache.outputs.cache-hit != true
-        run: yarn build:rust --release --target ${{ matrix.target }} dist
+        run: yarn install && yarn build:rust --release --target ${{ matrix.target }} dist
         env:
           MACOSX_DEPLOYMENT_TARGET: '10.13'
       - name: Upload artifact
