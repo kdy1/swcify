@@ -70,7 +70,7 @@ impl Fold for AsyncTransform {
                         self.bindings.push(default_specifier.local.to_id());
                     }
                     ImportSpecifier::Named(named_specifier) => {
-                        self.bindings.push(named_specifier.local.to_id())
+                        self.bindings.push(named_specifier.local.to_id());
                     }
                     _ => {}
                 }
