@@ -14,7 +14,7 @@ use swc::{try_with_handler, Compiler, TransformOutput};
 use swc_common::{FileName, SourceFile};
 use swc_ecmascript::ast::Program;
 use swc_ecmascript::transforms::pass::noop;
-use crate::{async_transform::async_transform};
+use crate::{async_transform::AsyncTransform};
 
 /// Input to transform
 #[derive(Debug)]
@@ -38,7 +38,7 @@ impl Task for TransformTask {
       self.c.run(|| match self.input {
         Input::Source(ref s) => {
           //TODO: replace with chained transforms: chain!(*)
-          let before_pass = async_transform();
+          let before_pass = AsyncTransform::with_defaults();
           self.c.process_js_with_custom_pass(
             s.clone(),
             &handler,

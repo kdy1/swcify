@@ -8,7 +8,7 @@ use testing::fixture;
 #[path = "../src/async_transform.rs"]
 mod async_transform;
 
-use async_transform::async_transform;
+use async_transform::AsyncTransform;
 
 fn syntax() -> Syntax {
   Syntax::Es(EsConfig {
@@ -21,5 +21,5 @@ fn syntax() -> Syntax {
 #[fixture("tests/fixture/async/**/input.js")]
 fn async_fixture(input: PathBuf) {
   let output = input.parent().unwrap().join("output.js");
-  test_fixture(syntax(), &|_tr| async_transform(), &input, &output);
+  test_fixture(syntax(), &|_tr| AsyncTransform::with_defaults(), &input, &output);
 }

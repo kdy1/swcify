@@ -11,32 +11,41 @@ use swc_ecmascript::utils::ident::{Id, IdentLike};
 use swc_ecmascript::visit::{Fold, FoldWith};
 use maplit::hashmap;
 
-
-pub fn async_transform() -> impl Fold {
-
-    // Default packages to process
-    let packages: HashMap<String, Vec<String>> = hashmap! {
-        String::from("@shopify/alpaql/async") => vec![String::from("createAsyncQuery")],
-        String::from("@shopify/async") => vec![String::from("createResolver")],
-        String::from("@shopify/react-async") => vec![String::from("createAsyncContext"), String::from("createAsyncComponent")],
-        String::from("@shopify/react-graphql") => vec![String::from("createAsyncQueryComponent"), String::from("createAsyncQuery")],
-    };
-    
-    let webpack = true;
-    AsyncTransform {
-        packages,
-        webpack,
-        bindings: vec![],
-        overridden_bindings: vec![vec![]],
-    }
-}
-
 #[derive(Debug)]
-struct AsyncTransform {
+pub struct AsyncTransform {
     packages: HashMap<String, Vec<String>>,
     webpack: bool,
     bindings: Vec<Id>,
     overridden_bindings: Vec<Vec<Id>>,
+}
+
+impl AsyncTransform {
+    pub fn with_defaults() -> Self {
+        Self {
+            packages: hashmap! {
+                String::from("@shopify/alpaql/async") => vec![String::from("createAsyncQuery")],
+                String::from("@shopify/async") => vec![String::from("createResolver")],
+                String::from("@shopify/react-async") => vec![String::from("createAsyncContext"), String::from("createAsyncComponent")],
+                String::from("@shopify/react-graphql") => vec![String::from("createAsyncQueryComponent"), String::from("createAsyncQuery")],
+            },
+            webpack: true,
+            bindings: vec![],
+            overridden_bindings: vec![vec![]],
+        }
+    }
+
+    fn is_target_binding(&mut self, id: &Id) -> bool {
+        if !self.bindings.contains(id) {
+            return false;
+        }
+        !self.overridden_bindings
+            .iter()
+            .any(|block_overridden_bindings| {
+                block_overridden_bindings
+                    .iter()
+                    .any(|binding| binding == id)
+            })
+    }
 }
 
 impl Fold for AsyncTransform {
@@ -150,21 +159,6 @@ fn add_id_option(object: &mut ObjectLit, path: String, webpack: bool) {
         value: Box::new(Expr::Arrow(prop_val)),
     })));
     object.props.push(gen_arg);
-}
-
-impl AsyncTransform {
-    fn is_target_binding(&mut self, id: &Id) -> bool {
-        if !self.bindings.contains(id) {
-            return false;
-        }
-        !self.overridden_bindings
-            .iter()
-            .any(|block_overridden_bindings| {
-                block_overridden_bindings
-                    .iter()
-                    .any(|binding| binding == id)
-            })
-    }
 }
 
 fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> () {
