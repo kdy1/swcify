@@ -1,2 +1,5 @@
 /* eslint-env node */
-module.exports = require('./build/cjs/jest');
+function interopRequireDefault(obj) {
+  return obj && obj.__esModule ? obj : {default: obj};
+}
+module.exports = interopRequireDefault(require('./build/cjs/jest'));
