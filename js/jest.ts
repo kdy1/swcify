@@ -6,7 +6,7 @@ import type {Transformer} from '@jest/transform';
 
 import {Options} from './types';
 
-import {transformSync} from './index';
+import {transformSync} from '.';
 
 let memoizedOptions: Options;
 const transformer: Transformer<Options> = {
