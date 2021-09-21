@@ -11,7 +11,8 @@
     "!build/ts/**/tests/",
     "index.js",
     "swcify.node",
-    "native"
+    "dist",
+    "dev"
   ],
   "main": "index.js",
   "types": "build/ts/index.d.ts",
@@ -29,11 +30,12 @@
     "test": "loom test",
     "lint": "loom lint",
     "format": "loom lint --fix",
-    "prepublishOnly": "rustup target add x86_64-apple-darwin && yarn build",
-    "build": "yarn build:js && yarn build:native",
-    "build:native:optimized": "napi build --platform --release native",
-    "build:js": "loom build",
-    "build:native": "rustup target add x86_64-apple-darwin && napi build --platform native"
+    "prepublishOnly": "yarn build:js",
+    "preyalcpubish": "yarn build:rust dev",
+    "build": "yarn build:js && yarn build:rust dev",
+    "build:ci": "yarn build:js && yarn build:rust dist",
+    "build:rust": "napi build --platform",
+    "build:js": "loom build"
   },
   "dependencies": {
     "@node-rs/helper": "^1.2.1"
