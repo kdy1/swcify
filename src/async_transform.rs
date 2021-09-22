@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use maplit::hashmap;
 use swc_common::DUMMY_SP;
 use swc_ecmascript::ast::{
     ArrowExpr, AssignExpr, BindingIdent, BlockStmt, BlockStmtOrExpr, CallExpr, Expr, ExprOrSpread,
@@ -9,7 +10,6 @@ use swc_ecmascript::ast::{
 };
 use swc_ecmascript::utils::ident::{Id, IdentLike};
 use swc_ecmascript::visit::{Fold, FoldWith};
-use maplit::hashmap;
 
 #[derive(Debug)]
 pub struct AsyncTransform {
@@ -38,7 +38,8 @@ impl AsyncTransform {
         if !self.bindings.contains(id) {
             return false;
         }
-        !self.overridden_bindings
+        !self
+            .overridden_bindings
             .iter()
             .any(|block_overridden_bindings| {
                 block_overridden_bindings
