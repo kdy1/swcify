@@ -8,6 +8,7 @@
 extern crate napi_derive;
 /// Explicit extern crate to use allocator.
 extern crate swc_node_base;
+extern crate maplit;
 
 use backtrace::Backtrace;
 use napi::{CallContext, Env, JsObject, JsUndefined};
@@ -21,6 +22,7 @@ use swc_common::{
 
 mod transform;
 mod util;
+mod async_transform;
 
 static COMPILER: Lazy<Arc<Compiler>> = Lazy::new(|| {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));

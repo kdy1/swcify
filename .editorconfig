@@ -18,3 +18,6 @@ trim_trailing_whitespace = false
 # where whitespace is meaningful
 [*.diff]
 trim_trailing_whitespace = false
+
+[*.rs]
+indent_size = 4

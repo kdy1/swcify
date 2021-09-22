@@ -28,7 +28,9 @@
   },
   "prettier": "@shopify/prettier-config",
   "scripts": {
-    "test": "loom test",
+    "test": "loom test --no-watch && yarn test:native",
+    "test:js": "loom test",
+    "test:native": "cargo test",
     "lint": "loom lint",
     "format": "loom lint --fix",
     "prepublishOnly": "yarn build:js",
