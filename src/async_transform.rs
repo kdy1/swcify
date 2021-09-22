@@ -161,7 +161,7 @@ fn add_id_option(object: &mut ObjectLit, path: String, webpack: bool) {
     object.props.push(gen_arg);
 }
 
-fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) -> () {
+fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) {
     if call_expr.args.len() == 0 {
         return;
     }
