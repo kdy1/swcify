@@ -2,5 +2,6 @@ node_modules
 /.loom
 /build
 /target
-/native
 /tests/fixture
+/dev
+/dist

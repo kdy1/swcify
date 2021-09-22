@@ -10,5 +10,5 @@ jobs:
           node-version: '12.21'
           cache: 'yarn'
       - run: yarn install
-      - run: yarn build
+      - run: yarn build:ci
       - run: yarn test
