@@ -3,6 +3,10 @@
 // as such we retain their license in LICENSE.md in this folder
 
 use crate::{
+  async_transform::AsyncTransform,
+  i18n_transform::{I18nMode, I18nTransform},
+};
+use crate::{
   complete_output, get_compiler,
   util::{CtxtExt, MapErr},
 };
@@ -11,10 +15,9 @@ use napi::{CallContext, Env, JsBoolean, JsObject, JsString, Task};
 use std::sync::Arc;
 use swc::config::Options;
 use swc::{try_with_handler, Compiler, TransformOutput};
-use swc_common::{FileName, SourceFile};
+use swc_common::{chain, FileName, SourceFile};
 use swc_ecmascript::ast::Program;
 use swc_ecmascript::transforms::pass::noop;
-use crate::{async_transform::AsyncTransform};
 
 /// Input to transform
 #[derive(Debug)]
@@ -37,8 +40,14 @@ impl Task for TransformTask {
     try_with_handler(self.c.cm.clone(), |handler| {
       self.c.run(|| match self.input {
         Input::Source(ref s) => {
-          //TODO: replace with chained transforms: chain!(*)
-          let before_pass = AsyncTransform::with_defaults();
+          let before_pass = chain!(
+            AsyncTransform::with_defaults(),
+            I18nTransform::new(
+              s.name.clone(),
+              I18nMode::WithDynamicPaths,
+              String::from("en")
+            )
+          );
           self.c.process_js_with_custom_pass(
             s.clone(),
             &handler,
