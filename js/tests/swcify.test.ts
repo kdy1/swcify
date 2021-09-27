@@ -21,7 +21,9 @@ describe('swcify', () => {
         console.log("hi ", foo);
       }
     `,
+      {filename: './file.js'},
     );
+
     expect(trim(code)).toMatch(trimmed`
     import { foo } from 'bar';
     export function helloWorld() {
@@ -46,6 +48,7 @@ describe('swcify', () => {
           target: 'es2017',
           externalHelpers: true,
         },
+        filename: './file.js',
       },
     );
 
@@ -79,6 +82,7 @@ describe('async transform', () => {
           jsc: {
             target: 'es2020',
           },
+          filename: './file.js',
         }),
       ),
     ).toBe(
