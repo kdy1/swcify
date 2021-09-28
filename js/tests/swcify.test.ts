@@ -64,7 +64,7 @@ describe('swcify', () => {
   });
 });
 
-describe('async transform', () => {
+describe('Custom AsyncTransform', () => {
   it('adds an id prop that returns the require.resolveWeak of the first dynamic import in load', () => {
     const code = trim(`
         import { ${defaultImport} } from '${defaultPackage}';
