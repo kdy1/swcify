@@ -1,10 +1,15 @@
 /* eslint-env jest */
-import {transformSync} from '..';
+import {transform, transformSync} from '..';
 
 import {trim, trimmed} from './utilities';
 
 const swc = (code, options?) => {
   const output = transformSync(code, options);
+  return output.code;
+};
+
+const swcAsync = async (code, options?) => {
+  const output = await transform(code, options);
   return output.code;
 };
 
@@ -14,6 +19,24 @@ const defaultImport = 'createResolver';
 describe('swcify', () => {
   it('returns JS', () => {
     const code = swc(
+      trimmed`
+      import {foo} from 'bar';
+
+      export function helloWorld() {
+        console.log("hi ", foo);
+      }
+    `,
+    );
+    expect(trim(code)).toMatch(trimmed`
+    import { foo } from 'bar';
+    export function helloWorld() {
+        console.log(\"hi \", foo);
+    }
+  `);
+  });
+
+  it('returns JS Async', async () => {
+    const code = await swcAsync(
       trimmed`
       import {foo} from 'bar';
 
