@@ -18,6 +18,7 @@ use swc::{try_with_handler, Compiler, TransformOutput};
 use swc_common::{chain, FileName, SourceFile};
 use swc_ecmascript::ast::Program;
 use swc_ecmascript::transforms::pass::noop;
+use swc_ecmascript::visit::Fold;
 
 /// Input to transform
 #[derive(Debug)]
@@ -40,20 +41,15 @@ impl Task for TransformTask {
         try_with_handler(self.c.cm.clone(), |handler| {
             self.c.run(|| match self.input {
                 Input::Source(ref s) => {
-                    let before_pass = chain!(
-                        AsyncTransform::with_defaults(),
-                        I18nTransform::new(
-                            s.name.clone(),
-                            I18nMode::WithDynamicPaths,
-                            String::from("en")
-                        )
-                    );
+                    let (before_pass, after_pass) = custom_transforms(CustomTransformOptions {
+                        file: s.name.clone(),
+                    });
                     self.c.process_js_with_custom_pass(
                         s.clone(),
                         &handler,
                         &self.options,
                         before_pass,
-                        noop(),
+                        after_pass,
                     )
                 }
             })
@@ -101,7 +97,10 @@ where
             } else {
                 let fm =
                     op(&c, s.as_str()?.to_string(), &options).context("failed to load file.")?;
-                c.process_js_file(fm, &handler, &options)
+                let (before_pass, after_pass) = custom_transforms(CustomTransformOptions {
+                    file: fm.name.clone(),
+                });
+                c.process_js_with_custom_pass(fm, &handler, &options, before_pass, after_pass)
             }
         })
     })
@@ -141,4 +140,17 @@ pub fn transform_sync(cx: CallContext) -> napi::Result<JsObject> {
             src,
         ))
     })
+}
+
+struct CustomTransformOptions {
+    file: FileName,
+}
+
+fn custom_transforms(options: CustomTransformOptions) -> (impl Fold, impl Fold) {
+    let before_pass = chain!(
+        AsyncTransform::with_defaults(),
+        I18nTransform::new(options.file, I18nMode::WithDynamicPaths, String::from("en"))
+    );
+    let after_pass = noop();
+    (before_pass, after_pass)
 }
