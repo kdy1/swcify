@@ -1,10 +1,10 @@
 /* eslint-env jest */
-import {transform} from '..';
+import {transformSync} from '..';
 
 import {trim, trimmed} from './utilities';
 
-const swc = async (code, options?) => {
-  const output = await transform(code, options);
+const swc = (code, options?) => {
+  const output = transformSync(code, options);
   return output.code;
 };
 
@@ -12,8 +12,8 @@ const defaultPackage = '@shopify/async';
 const defaultImport = 'createResolver';
 
 describe('swcify', () => {
-  it('returns JS', async () => {
-    const code = await swc(
+  it('returns JS', () => {
+    const code = swc(
       trimmed`
       import {foo} from 'bar';
 
@@ -30,8 +30,8 @@ describe('swcify', () => {
   `);
   });
 
-  it('respects options', async () => {
-    const code = await swc(
+  it('respects options', () => {
+    const code = swc(
       trimmed`
       async function f() {
       }
@@ -65,7 +65,7 @@ describe('swcify', () => {
 });
 
 describe('async transform', () => {
-  it('adds an id prop that returns the require.resolveWeak of the first dynamic import in load', async () => {
+  it('adds an id prop that returns the require.resolveWeak of the first dynamic import in load', () => {
     const code = trim(`
         import { ${defaultImport} } from '${defaultPackage}';
   
@@ -75,7 +75,7 @@ describe('async transform', () => {
       `);
     expect(
       trim(
-        await swc(code, {
+        swc(code, {
           jsc: {
             target: 'es2020',
           },
