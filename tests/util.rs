@@ -6,8 +6,7 @@ use swc_ecma_transforms_testing::Tester;
 use swc_ecmascript::ast::Module;
 use swc_ecmascript::parser::{Parser, StringInput, Syntax};
 use swc_ecmascript::transforms::{fixer, hygiene};
-use swc_ecmascript::utils::DropSpan;
-use swc_ecmascript::visit::{as_folder, FoldWith};
+use swc_ecmascript::visit::FoldWith;
 use testing::{assert_eq, DebugUsingDisplay, NormalizedOutput};
 
 // Simplified version of swc_ecma_transforms_testing::test_fixture.
@@ -23,12 +22,12 @@ pub fn custom_test_fixture(
     let _is_really_expected = expected.is_ok();
     let expected = expected.unwrap_or_default();
     let expected_src = Tester::run(|tester| {
-        let fm = tester
+        let fm = &tester
             .cm
             .new_source_file(FileName::Real("output.js".into()), expected.into());
 
         let expected_module = {
-            let mut p = Parser::new(syntax, StringInput::from(&*fm), Some(&tester.comments));
+            let mut p = Parser::new(syntax, StringInput::from(&**fm), Some(&tester.comments));
             let res = p
                 .parse_module()
                 .map_err(|e| e.into_diagnostic(&tester.handler).emit());
@@ -40,6 +39,10 @@ pub fn custom_test_fixture(
             res?
         };
 
+        let expected_module = expected_module
+            .fold_with(&mut hygiene())
+            .fold_with(&mut fixer(Some(&tester.comments)));
+
         let expected_src = tester.print(&expected_module, &tester.comments.clone());
 
         println!(
@@ -50,28 +53,38 @@ pub fn custom_test_fixture(
 
         Ok(expected_src)
     });
+
+    let input_str = read_to_string(input);
+    let _is_really_input = input_str.is_ok();
+    let input_str = input_str.unwrap_or_default();
     let actual_src = Tester::run(|tester| {
+        let fm = tester
+            .cm
+            .new_source_file(FileName::Real("input.js".into()), input_str.into());
         let input_str = read_to_string(input).unwrap();
         println!("----- {} -----\n{}", Color::Green.paint("Input"), input_str);
 
         println!("----- {} -----", Color::Green.paint("Actual"));
 
-        let actual = tester.apply_transform(
-            as_folder(DropSpan {
-                preserve_ctxt: true,
-            }),
-            "input.js",
-            syntax,
-            &read_to_string(&input).unwrap(),
-        )?;
+        let actual_module = {
+            let mut p = Parser::new(syntax, StringInput::from(&*fm), Some(&tester.comments));
+            let res = p
+                .parse_module()
+                .map_err(|e| e.into_diagnostic(&tester.handler).emit());
 
-        let actual = tranform(actual, tester);
+            for e in p.take_errors() {
+                e.into_diagnostic(&tester.handler).emit()
+            }
+            res?
+        };
 
-        let actual = actual
+        let actual_module = tranform(actual_module, tester);
+
+        let actual_module = actual_module
             .fold_with(&mut hygiene())
             .fold_with(&mut fixer(Some(&tester.comments)));
 
-        let actual_src = tester.print(&actual, &tester.comments.clone());
+        let actual_src = tester.print(&actual_module, &tester.comments.clone());
 
         Ok(actual_src)
     });

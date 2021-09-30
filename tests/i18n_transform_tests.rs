@@ -47,7 +47,7 @@ mod i18_tests {
         i18n_fixture_test(
             "tests/fixtures/i18n/inputs/useI18n.js".into(),
             "tests/fixtures/i18n/inputs/useI18n.js".into(),
-            "tests/fixtures/i18n/translations/MyComponent.js".into(),
+            "tests/fixtures/i18n/translations/NoTranslations.js".into(),
             I18nMode::WithDynamicPaths,
             "en".into(),
         );
@@ -82,11 +82,58 @@ mod i18_tests {
             "en".into(),
         );
     }
-    // // TODO: transforms_withI18n_when_it_was_renamed_during_import
-    // // TODO: transforms_useI18n_when_it_was_renamed_during_import
-    // // TODO: does_not_transform_withI18n_when_it_already_has_arguments
-    // // TODO: does_not_transform_useI18n_when_it_already_has_arguments
-    // // TODO: throws_when_multiple_components_in_a_single_file_request_translations
+
+    #[test]
+    fn transforms_with_i18n_when_it_was_renamed_during_import() {
+        i18n_fixture_test(
+            "tests/fixtures/i18n/inputs/rename_withI18n.js".into(),
+            "tests/fixtures/i18n/outputs/rename_withI18n_dynamic_paths.js".into(),
+            "tests/fixtures/i18n/translations/adjacent/MyComponent.js".into(),
+            I18nMode::WithDynamicPaths,
+            "en".into(),
+        );
+    }
+    #[test]
+    fn transforms_use_i18n_when_it_was_renamed_during_import() {
+        i18n_fixture_test(
+            "tests/fixtures/i18n/inputs/rename_useI18n.js".into(),
+            "tests/fixtures/i18n/outputs/rename_useI18n_dynamic_paths.js".into(),
+            "tests/fixtures/i18n/translations/adjacent/MyComponent.js".into(),
+            I18nMode::WithDynamicPaths,
+            "en".into(),
+        );
+    }
+    #[test]
+    fn does_not_transform_with_i18n_when_it_already_has_arguments() {
+        i18n_fixture_test(
+            "tests/fixtures/i18n/inputs/with_args_withI18n.js".into(),
+            "tests/fixtures/i18n/inputs/with_args_withI18n.js".into(),
+            "tests/fixtures/i18n/translations/adjacent/MyComponent.js".into(),
+            I18nMode::WithDynamicPaths,
+            "en".into(),
+        );
+    }
+    #[test]
+    fn does_not_transform_use_i18n_when_it_already_has_arguments() {
+        i18n_fixture_test(
+            "tests/fixtures/i18n/inputs/with_args_useI18n.js".into(),
+            "tests/fixtures/i18n/inputs/with_args_useI18n.js".into(),
+            "tests/fixtures/i18n/translations/adjacent/MyComponent.js".into(),
+            I18nMode::WithDynamicPaths,
+            "en".into(),
+        );
+    }
+    #[test]
+    #[should_panic]
+    fn throws_when_multiple_components_in_a_single_file_request_translations() {
+        i18n_fixture_test(
+            "tests/fixtures/i18n/inputs/multi_requests.js".into(),
+            "tests/fixtures/i18n/inputs/multi_requests.js".into(),
+            "tests/fixtures/i18n/translations/adjacent/MyComponent.js".into(),
+            I18nMode::WithDynamicPaths,
+            "en".into(),
+        );
+    }
     #[test]
     fn injects_arguments_with_translations_import_into_use_i18n_when_mode_equals_to_from_generated_index(
     ) {

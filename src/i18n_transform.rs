@@ -217,11 +217,17 @@ impl Fold for I18nTransform<'_> {
                         }
                     }
                     ImportSpecifier::Named(named_specifier) => {
-                        if I18N_CALL_NAMES
-                            .iter()
-                            .any(|&name| name == &named_specifier.local.sym)
-                        {
-                            self.bindings.push(named_specifier.local.to_id())
+                        if let Some(imported) = &named_specifier.imported {
+                            if I18N_CALL_NAMES.iter().any(|&name| name == &imported.sym) {
+                                self.bindings.push(named_specifier.local.to_id())
+                            }
+                        } else {
+                            if I18N_CALL_NAMES
+                                .iter()
+                                .any(|&name| name == &named_specifier.local.sym)
+                            {
+                                self.bindings.push(named_specifier.local.to_id())
+                            }
                         }
                     }
                     _ => {}
@@ -233,18 +239,20 @@ impl Fold for I18nTransform<'_> {
 
     fn fold_call_expr(&mut self, expr: CallExpr) -> CallExpr {
         let mut expr = expr.fold_children_with(self);
-        if let ExprOrSuper::Expr(i) = &expr.callee {
-            if let Expr::Ident(identifier) = &**i {
-                if self.bindings.contains(&identifier.to_id()) {
-                    if self.call_rewritten {
-                        panic!("You attempted to use bindingName referencePathsToRewrite.length times in a single file. This is not supported by the Babel plugin that automatically inserts translations.")
-                    } else {
-                        self.call_rewritten = true;
+        if expr.args.len() == 0 {
+            if let ExprOrSuper::Expr(i) = &expr.callee {
+                if let Expr::Ident(identifier) = &**i {
+                    if self.bindings.contains(&identifier.to_id()) {
+                        if self.call_rewritten {
+                            panic!("You attempted to use bindingName referencePathsToRewrite.length times in a single file. This is not supported by the Babel plugin that automatically inserts translations.")
+                        } else {
+                            self.call_rewritten = true;
+                        }
+                        if expr.args.len() != 0 {
+                            panic!("No translation files found in translations/ folder.");
+                        }
+                        self.inject_with_i18n_arguments(&mut expr);
                     }
-                    if expr.args.len() != 0 {
-                        panic!("No translation files found in translations/ folder.");
-                    }
-                    self.inject_with_i18n_arguments(&mut expr);
                 }
             }
         }
