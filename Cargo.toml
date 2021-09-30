@@ -29,8 +29,9 @@ crate-type = ["cdylib"]
 napi-build = "1"
 
 [dev-dependencies]
+testing = "0.14.0"
 swc_ecma_transforms_testing = "0.32"
-rstest = "0.11.0"
+ansi_term = "0.12.1"
 
 [profile.release]
 lto = true

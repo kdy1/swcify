@@ -98,3 +98,56 @@ describe('async transform', () => {
     );
   });
 });
+
+describe('i18n transform', () => {
+  it('injects arguments into with i18n when adjacent exist', () => {
+    const code = trim(`
+    import React from "react";
+    import { withI18n } from "@shopify/react-i18n";
+    
+    function MyComponent({ i18n }) {
+      return i18n.translate("key");
+    }
+    
+    export default withI18n()(MyComponent);    
+      `);
+    expect(
+      trim(
+        swc(code, {
+          jsc: {
+            target: 'es2020',
+          },
+          filename:
+            './tests/fixtures/i18n/translations/adjacent/MyComponent.js',
+        }),
+      ),
+    ).toBe(
+      trim(`
+      import _en from "./translations/en.json";
+      import React from "react";
+      import { withI18n } from "@shopify/react-i18n";
+      
+      function MyComponent({ i18n  }) {
+        return i18n.translate("key");
+      }
+      
+      export default withI18n({
+        id: "MyComponent_TODOHASH",
+        fallback: _en,
+        translations (locale) {
+          if ([
+            "de",
+            "fr",
+            "zh-TW"
+          ].indexOf(locale) < 0) {
+            return;
+          }
+      
+          return import(/* webpackChunkName: "MyComponent_TODOHASH-i18n", webpackMode: "lazy-once" */ \`./translations/\${locale}.json\`).then((dict)=>dict && dict.default
+          );
+        }
+      })(MyComponent);      
+      `),
+    );
+  });
+});
