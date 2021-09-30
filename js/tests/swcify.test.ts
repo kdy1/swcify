@@ -111,14 +111,14 @@ describe('i18n transform', () => {
     
     export default withI18n()(MyComponent);    
       `);
+    const filenameHash = '1asowhql4ye2g';
     expect(
       trim(
         swc(code, {
           jsc: {
             target: 'es2020',
           },
-          filename:
-            './tests/fixtures/i18n/translations/adjacent/MyComponent.js',
+          filename: 'tests/fixtures/i18n/translations/adjacent/MyComponent.js',
         }),
       ),
     ).toBe(
@@ -132,7 +132,7 @@ describe('i18n transform', () => {
       }
       
       export default withI18n({
-        id: "MyComponent_TODOHASH",
+        id: "MyComponent_${filenameHash}",
         fallback: _en,
         translations (locale) {
           if ([
@@ -143,7 +143,7 @@ describe('i18n transform', () => {
             return;
           }
       
-          return import(/* webpackChunkName: "MyComponent_TODOHASH-i18n", webpackMode: "lazy-once" */ \`./translations/\${locale}.json\`).then((dict)=>dict && dict.default
+          return import(/* webpackChunkName: "MyComponent_${filenameHash}-i18n", webpackMode: "lazy-once" */ \`./translations/\${locale}.json\`).then((dict)=>dict && dict.default
           );
         }
       })(MyComponent);      

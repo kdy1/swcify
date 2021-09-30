@@ -1,3 +1,6 @@
+use radix_fmt::radix_36;
+use rustc_hash::FxHasher;
+use std::hash::Hasher;
 use std::path::PathBuf;
 use swc_common::source_map::Pos;
 use swc_common::{
@@ -619,8 +622,19 @@ fn dictionary_index_return_stmt(dict_id: &String) -> Stmt {
 }
 
 fn generate_id(filename: &PathBuf) -> String {
-    let hash = String::from("TODOHASH"); //stringHash(filename).toString(36);
-    let legible: &str = filename.file_stem().expect("TODO").to_str().expect("TODO"); //path.basename(filename, extension);
+    let mut hasher = FxHasher::default();
+    hasher.write(
+        filename
+            .to_str()
+            .expect("Failed to convert filename to string.")
+            .as_bytes(),
+    );
+    let hash = radix_36(hasher.finish());
+    let legible: &str = filename
+        .file_stem()
+        .expect("Failed to get file stem from filename.")
+        .to_str()
+        .expect("Failed to convert filename to string.");
     return format!("{}_{}", legible, hash);
 }
 
