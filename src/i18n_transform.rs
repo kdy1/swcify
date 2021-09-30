@@ -1,5 +1,9 @@
 use std::path::PathBuf;
-use swc_common::{FileName, DUMMY_SP};
+use swc_common::source_map::Pos;
+use swc_common::{
+    comments::{Comment, CommentKind, Comments},
+    BytePos, FileName, Span, DUMMY_SP,
+};
 use swc_ecmascript::ast::{
     ArrayLit, ArrowExpr, BinExpr, BinaryOp, BindingIdent, BlockStmt, BlockStmtOrExpr, CallExpr,
     Decl, Expr, ExprOrSpread, ExprOrSuper, Function, Ident, IfStmt, ImportDecl,
@@ -24,53 +28,71 @@ pub enum I18nMode {
     FromDictionaryIndex,
 }
 
-#[derive(Debug)]
-pub struct I18nTransform {
+pub struct I18nTransform<'a> {
     filename: PathBuf,
     mode: I18nMode,
     default_locale: String,
+    comments: &'a dyn Comments,
     translation_file_paths: Option<Vec<PathBuf>>,
     bindings: Vec<Id>,
     call_rewritten: bool,
 }
 
-impl I18nTransform {
-    pub fn new(filename: FileName, mode: I18nMode, default_locale: String) -> Self {
-        let filename = match filename {
-            FileName::Real(pathbuf) => pathbuf,
-            _ => panic!("Unhandled filename type."),
-        };
+pub fn i18n_transform<'a>(
+    filename: FileName,
+    mode: I18nMode,
+    default_locale: String,
+    comments: &'a dyn Comments,
+) -> I18nTransform<'a> {
+    let filename = match filename {
+        FileName::Real(pathbuf) => pathbuf,
+        _ => panic!("Unhandled filename type."),
+    };
 
-        let translation_file_paths: Option<Vec<PathBuf>> =
-            get_translation_file_paths(&filename, &String::from("translations"));
-
-        Self {
-            filename,
-            mode,
-            default_locale,
-            translation_file_paths,
-            bindings: vec![],
-            call_rewritten: false,
-        }
+    let translation_file_paths: Option<Vec<PathBuf>> =
+        get_translation_file_paths(&filename, &String::from("translations"));
+    I18nTransform {
+        filename,
+        mode,
+        default_locale,
+        comments,
+        translation_file_paths,
+        bindings: vec![],
+        call_rewritten: false,
     }
+}
 
+impl I18nTransform<'_> {
     fn inject_with_i18n_arguments(&mut self, call_expr: &mut CallExpr) {
         let id = generate_id(&self.filename);
-
         let translation_file_paths = match &self.translation_file_paths {
             Some(translation_file_paths) => translation_file_paths.clone(),
             None => return,
         };
+
+        // Comments can only be mapped to nodes with non dummy spans
+        // The .lo portion is set to 1 byte after the callexpr lo
+        // The .hi portion must be higher than lo, but doesn't have to be accurate.
+        let comment_span_lo = call_expr.span.lo() + BytePos(1);
 
         let i18n_args: Expr = match self.mode {
             I18nMode::WithDynamicPaths => {
                 let fallback_expr = fallback_expr_from_locale(&self.default_locale);
                 let locale_ids = get_locale_ids(&translation_file_paths, &self.default_locale);
                 let check_stmt = translation_fn_check(is_in_str_array(&locale_ids));
-                let return_stmt = import_promise_return_stmt(None, default_dict_arrow_fn());
+                let comment_span = add_leading_comment(
+                    &mut self.comments,
+                    comment_span_lo,
+                    format!(
+                        " webpackChunkName: \"{}-i18n\", webpackMode: \"lazy-once\" ",
+                        id
+                    ),
+                );
+                let return_stmt =
+                    import_promise_return_stmt(None, default_dict_arrow_fn(), comment_span);
                 let translation_fn_stmts = vec![check_stmt, return_stmt];
 
-                generate_i18n_call_expression(id, fallback_expr, translation_fn_stmts)
+                generate_i18n_call_arguments(id, fallback_expr, translation_fn_stmts)
             }
             I18nMode::WithExplicitPaths => {
                 let fallback_expr = fallback_expr_from_locale(&self.default_locale);
@@ -83,27 +105,51 @@ impl I18nTransform {
                     num_locals if num_locals == 1 => {
                         translation_fn_stmts
                             .push(translation_fn_check(locale_eq_str_expr(&locale_ids[0])));
+
+                        let comment_span = add_leading_comment(
+                            &mut self.comments,
+                            comment_span_lo,
+                            format!(" webpackChunkName: \"{}-i18n\" ", id),
+                        );
                         translation_fn_stmts.push(import_promise_return_stmt(
                             Some(locale_ids[0].clone()),
                             default_dict_arrow_fn(),
+                            comment_span,
                         ));
                     }
-                    _ => {
+                    num_locals @ _ => {
                         translation_fn_stmts.push(explicit_paths_define_arrow_fn_stmt());
-                        translation_fn_stmts.push(explicit_paths_switch_stmt(&locale_ids));
+                        for i in 0..num_locals {
+                            add_leading_comment(
+                                &mut self.comments,
+                                comment_span_lo + BytePos::from_usize(i),
+                                format!(" webpackChunkName: \"{}-i18n\" ", id),
+                            );
+                        }
+                        translation_fn_stmts
+                            .push(explicit_paths_switch_stmt(&locale_ids, comment_span_lo));
                     }
                 };
-                generate_i18n_call_expression(id, fallback_expr, translation_fn_stmts)
+                generate_i18n_call_arguments(id, fallback_expr, translation_fn_stmts)
             }
             I18nMode::FromGeneratedIndex => {
                 let fallback_expr = fallback_expr_from_locale(&self.default_locale);
                 let check_stmt = translation_fn_check(is_in_array_var(String::from(
                     DEFAULT_INDEX_TRANSLATION_ARRAY_ID,
                 )));
-                let return_stmt = import_promise_return_stmt(None, default_dict_arrow_fn());
+                let comment_span = add_leading_comment(
+                    &mut self.comments,
+                    comment_span_lo,
+                    format!(
+                        " webpackChunkName: \"{}-i18n\", webpackMode: \"lazy-once\" ",
+                        id
+                    ),
+                );
+                let return_stmt =
+                    import_promise_return_stmt(None, default_dict_arrow_fn(), comment_span);
                 let translation_fn_stmts = vec![check_stmt, return_stmt];
 
-                generate_i18n_call_expression(id, fallback_expr, translation_fn_stmts)
+                generate_i18n_call_arguments(id, fallback_expr, translation_fn_stmts)
             }
             I18nMode::FromDictionaryIndex => {
                 let fallback_expr = fallback_expr_from_dictionary(&String::from(
@@ -113,7 +159,7 @@ impl I18nTransform {
                     dictionary_index_return_stmt(&String::from(DEFAULT_INDEX_TRANSLATION_ARRAY_ID));
                 let translation_fn_stmts = vec![return_stmt];
 
-                generate_i18n_call_expression(id, fallback_expr, translation_fn_stmts)
+                generate_i18n_call_arguments(id, fallback_expr, translation_fn_stmts)
             }
         };
         call_expr.args.push(ExprOrSpread {
@@ -123,7 +169,7 @@ impl I18nTransform {
     }
 }
 
-impl Fold for I18nTransform {
+impl Fold for I18nTransform<'_> {
     fn fold_module(&mut self, module: Module) -> Module {
         // skip transform if translation files not found
         if self.translation_file_paths == None {
@@ -158,7 +204,6 @@ impl Fold for I18nTransform {
         } = decl;
         if src.value.to_string() == I18N_PKG_NAME {
             for specifier in specifiers {
-                // I18N_CALL_NAMES.iter().any(|&name| name == &identifier.sym)
                 match specifier {
                     ImportSpecifier::Default(default_specifier) => {
                         if I18N_CALL_NAMES
@@ -223,7 +268,8 @@ fn insert_import(module: &mut Module, import_id: &String, import_src: &String) {
     module.body.insert(0, import_decl);
 }
 
-fn generate_i18n_call_expression(
+// e.g., {id: [id], fallback_val: "_fallback_val", translations (locale) {fn_stmts...}}
+fn generate_i18n_call_arguments(
     id: String,
     fallback_val: Box<Expr>,
     translation_fn_stmts: Vec<Stmt>,
@@ -397,18 +443,22 @@ fn translation_fn_check(test: Box<Expr>) -> Stmt {
     })
 }
 
-fn import_promise_return_stmt(import_arg_locale: Option<String>, on_resolve: Expr) -> Stmt {
+fn import_promise_return_stmt(
+    import_arg_locale: Option<String>,
+    on_resolve: Expr,
+    comment_span: Span,
+) -> Stmt {
     let import_arg = match import_arg_locale {
         Some(locale) => Box::new(Expr::Lit(Lit::Str(Str {
             value: format!("./{}/{}.json", TRANSLATION_DIRECTORY_NAME, locale)
                 .as_str()
                 .into(),
-            span: DUMMY_SP,
+            span: comment_span,
             kind: StrKind::Synthesized {},
             has_escape: false,
         }))),
         None => Box::new(Expr::Tpl(Tpl {
-            span: DUMMY_SP,
+            span: comment_span,
             exprs: vec![],
             quasis: vec![TplElement {
                 span: DUMMY_SP,
@@ -503,21 +553,30 @@ fn default_dict_arrow_fn() -> Expr {
     })
 }
 
-fn explicit_paths_switch_stmt(locale_ids: &Vec<String>) -> Stmt {
+fn explicit_paths_switch_stmt(locale_ids: &Vec<String>, span_lo: BytePos) -> Stmt {
     let cases: Vec<_> = locale_ids
         .iter()
-        .map(|id| SwitchCase {
-            span: DUMMY_SP,
-            test: Some(Box::new(Expr::Lit(Lit::Str(Str {
-                value: id.as_str().into(),
+        .enumerate()
+        .map(|(i, id)| {
+            let comment_span = Span {
+                lo: span_lo + BytePos::from_usize(i),
+                hi: span_lo + BytePos::from_usize(i + 1),
+                ctxt: Default::default(),
+            };
+            SwitchCase {
                 span: DUMMY_SP,
-                kind: StrKind::Synthesized {},
-                has_escape: false,
-            })))),
-            cons: vec![import_promise_return_stmt(
-                Some(id.to_string()),
-                Expr::Ident(Ident::new("returnDefault".into(), DUMMY_SP)),
-            )],
+                test: Some(Box::new(Expr::Lit(Lit::Str(Str {
+                    value: id.as_str().into(),
+                    span: DUMMY_SP,
+                    kind: StrKind::Synthesized {},
+                    has_escape: false,
+                })))),
+                cons: vec![import_promise_return_stmt(
+                    Some(id.to_string()),
+                    Expr::Ident(Ident::new("returnDefault".into(), DUMMY_SP)),
+                    comment_span,
+                )],
+            }
         })
         .collect();
     Stmt::Switch(SwitchStmt {
@@ -572,7 +631,7 @@ fn get_translation_file_paths(
     let mut translation_dir: PathBuf = match filename.parent() {
         Some(path) => PathBuf::from(path),
         None => {
-            panic!();
+            panic!("Parent directory not found");
         }
     };
     translation_dir.push(translation_dir_name);
@@ -616,4 +675,21 @@ fn get_locale_ids(translation_file_paths: &Vec<PathBuf>, fallback_locale: &Strin
 
 fn get_locale_id(fallback_locale: &String) -> String {
     format!("_{}", fallback_locale)
+}
+
+// adds a leading comment to provided comment map and returns a span for the node the comment should precede.
+fn add_leading_comment(comments: &mut dyn Comments, pos: BytePos, text: String) -> Span {
+    comments.add_leading(
+        pos,
+        Comment {
+            span: DUMMY_SP,
+            kind: CommentKind::Block,
+            text,
+        },
+    );
+    Span {
+        lo: pos,
+        hi: pos + BytePos(1),
+        ctxt: Default::default(),
+    }
 }

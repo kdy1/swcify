@@ -4,7 +4,7 @@
 
 use crate::{
     async_transform::AsyncTransform,
-    i18n_transform::{I18nMode, I18nTransform},
+    i18n_transform::{i18n_transform, I18nMode},
 };
 use crate::{
     complete_output, get_compiler,
@@ -15,7 +15,7 @@ use napi::{CallContext, Env, JsBoolean, JsObject, JsString, Task};
 use std::sync::Arc;
 use swc::config::Options;
 use swc::{try_with_handler, Compiler, TransformOutput};
-use swc_common::{chain, FileName, SourceFile};
+use swc_common::{chain, comments::Comments, FileName, SourceFile};
 use swc_ecmascript::ast::Program;
 use swc_ecmascript::transforms::pass::noop;
 use swc_ecmascript::visit::Fold;
@@ -43,6 +43,7 @@ impl Task for TransformTask {
                 Input::Source(ref s) => {
                     let (before_pass, after_pass) = custom_transforms(CustomTransformOptions {
                         file: s.name.clone(),
+                        comments: self.c.comments(),
                     });
                     self.c.process_js_with_custom_pass(
                         s.clone(),
@@ -99,6 +100,7 @@ where
                     op(&c, s.as_str()?.to_string(), &options).context("failed to load file.")?;
                 let (before_pass, after_pass) = custom_transforms(CustomTransformOptions {
                     file: fm.name.clone(),
+                    comments: c.comments(),
                 });
                 c.process_js_with_custom_pass(fm, &handler, &options, before_pass, after_pass)
             }
@@ -142,14 +144,21 @@ pub fn transform_sync(cx: CallContext) -> napi::Result<JsObject> {
     })
 }
 
-struct CustomTransformOptions {
+struct CustomTransformOptions<'a> {
     file: FileName,
+    comments: &'a dyn Comments,
 }
 
-fn custom_transforms(options: CustomTransformOptions) -> (impl Fold, impl Fold) {
+// fn custom_transforms<'a>(file: FileName, compiler: &'a Arc<Compiler>) -> (impl Fold, impl Fold) {
+fn custom_transforms<'a>(options: CustomTransformOptions<'a>) -> (impl Fold + 'a, impl Fold + 'a) {
     let before_pass = chain!(
         AsyncTransform::with_defaults(),
-        I18nTransform::new(options.file, I18nMode::WithDynamicPaths, String::from("en"))
+        i18n_transform(
+            options.file,
+            I18nMode::WithDynamicPaths,
+            String::from("en"),
+            options.comments
+        )
     );
     let after_pass = noop();
     (before_pass, after_pass)
