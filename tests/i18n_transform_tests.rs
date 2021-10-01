@@ -166,6 +166,16 @@ mod i18_tests {
         );
     }
     #[test]
+    fn injects_proper_translation_function_for_only_fallback_case() {
+        i18n_fixture_test(
+            "tests/fixtures/i18n/inputs/useI18n.js".into(),
+            "tests/fixtures/i18n/outputs/useI18n_explict_paths_fallback.js".into(),
+            "tests/fixtures/i18n/translations/fallback_only/MyComponent.js".into(),
+            I18nMode::WithExplicitPaths,
+            "en".into(),
+        );
+    }
+    #[test]
     fn injects_proper_translation_function_for_fallback_plus_one_case() {
         i18n_fixture_test(
             "tests/fixtures/i18n/inputs/useI18n.js".into(),
