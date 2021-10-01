@@ -208,14 +208,6 @@ impl Fold for I18nTransform<'_> {
         if src.value.to_string() == I18N_PKG_NAME {
             for specifier in specifiers {
                 match specifier {
-                    ImportSpecifier::Default(default_specifier) => {
-                        if I18N_CALL_NAMES
-                            .iter()
-                            .any(|&name| name == &default_specifier.local.sym)
-                        {
-                            self.bindings.push(default_specifier.local.to_id());
-                        }
-                    }
                     ImportSpecifier::Named(named_specifier) => {
                         if let Some(imported) = &named_specifier.imported {
                             if I18N_CALL_NAMES.iter().any(|&name| name == &imported.sym) {
