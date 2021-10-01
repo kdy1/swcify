@@ -252,9 +252,6 @@ impl Fold for I18nTransform<'_> {
                         } else {
                             self.call_rewritten = true;
                         }
-                        if expr.args.len() != 0 {
-                            panic!("No translation files found in translations/ folder.");
-                        }
                         self.inject_with_i18n_arguments(&mut expr);
                     }
                 }
