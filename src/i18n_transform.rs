@@ -248,7 +248,7 @@ impl Fold for I18nTransform<'_> {
                 if let Expr::Ident(identifier) = &**i {
                     if self.bindings.contains(&identifier.to_id()) {
                         if self.call_rewritten {
-                            panic!("You attempted to use bindingName referencePathsToRewrite.length times in a single file. This is not supported by the Babel plugin that automatically inserts translations.")
+                            panic!("You attempted to use bindingName referencePathsToRewrite.length times in a single file. This is not supported by the SWC plugin that automatically inserts translations.")
                         } else {
                             self.call_rewritten = true;
                         }
