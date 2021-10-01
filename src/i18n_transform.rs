@@ -181,20 +181,32 @@ impl Fold for I18nTransform<'_> {
         let mut module = module.fold_children_with(self);
 
         if self.bindings.len() > 0 && self.call_rewritten {
-            let (import_id, import_src) = match self.mode {
-                I18nMode::FromGeneratedIndex | I18nMode::FromDictionaryIndex => (
-                    String::from(DEFAULT_INDEX_TRANSLATION_ARRAY_ID),
-                    format!("./{}", TRANSLATION_DIRECTORY_NAME),
-                ),
-                _ => (
-                    get_locale_id(&self.default_locale),
-                    format!(
+            match self.mode {
+                I18nMode::FromDictionaryIndex => {
+                    let import_id = String::from(DEFAULT_INDEX_TRANSLATION_ARRAY_ID);
+                    let import_src = format!("./{}", TRANSLATION_DIRECTORY_NAME);
+                    insert_import(&mut module, &import_id, &import_src);
+                }
+                I18nMode::FromGeneratedIndex => {
+                    let import_id = get_locale_id(&self.default_locale);
+                    let import_src = format!(
                         "./{}/{}.json",
                         TRANSLATION_DIRECTORY_NAME, self.default_locale
-                    ),
-                ),
+                    );
+                    insert_import(&mut module, &import_id, &import_src);
+                    let import_id = String::from(DEFAULT_INDEX_TRANSLATION_ARRAY_ID);
+                    let import_src = format!("./{}", TRANSLATION_DIRECTORY_NAME);
+                    insert_import(&mut module, &import_id, &import_src);
+                }
+                _ => {
+                    let import_id = get_locale_id(&self.default_locale);
+                    let import_src = format!(
+                        "./{}/{}.json",
+                        TRANSLATION_DIRECTORY_NAME, self.default_locale
+                    );
+                    insert_import(&mut module, &import_id, &import_src);
+                }
             };
-            insert_import(&mut module, &import_id, &import_src);
         }
         module
     }

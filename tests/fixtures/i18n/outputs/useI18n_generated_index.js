@@ -1,4 +1,5 @@
 import __shopify__i18n_translations from "./translations";
+import _en from "./translations/en.json";
 import React from "react";
 import { useI18n } from "@shopify/react-i18n";
 
