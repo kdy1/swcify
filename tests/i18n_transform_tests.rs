@@ -159,9 +159,9 @@ mod i18_tests {
     fn injects_a_dictionary_import_and_returns_dictionary_values_from_use_i18n() {
         i18n_fixture_test(
             "tests/fixtures/i18n/inputs/useI18n.js".into(),
-            "tests/fixtures/i18n/outputs/useI18n_explict_paths_fallback.js".into(),
+            "tests/fixtures/i18n/outputs/useI18n_dictionary_index.js".into(),
             "tests/fixtures/i18n/translations/fallback_only/MyComponent.js".into(),
-            I18nMode::WithExplicitPaths,
+            I18nMode::FromDictionaryIndex,
             "en".into(),
         );
     }
