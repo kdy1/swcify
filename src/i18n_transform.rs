@@ -280,7 +280,7 @@ fn insert_import(module: &mut Module, import_id: &String, import_src: &String) {
     module.body.insert(0, import_decl);
 }
 
-// e.g., {id: [id], fallback_val: "_fallback_val", translations (locale) {fn_stmts...}}
+// e.g., {id: [id], fallback: "_fallback_val", translations (locale) {fn_stmts...}}
 fn generate_i18n_call_arguments(
     id: String,
     fallback_val: Box<Expr>,
