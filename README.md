@@ -3,7 +3,7 @@
 [![Build dist binaries](https://github.com/Shopify/swcify/actions/workflows/build_and_commit_binaries.yml/badge.svg)](https://github.com/Shopify/swcify/actions/workflows/build_and_commit_binaries.yml)
 [![JS tests](https://github.com/Shopify/swcify/actions/workflows/js_test.yml/badge.svg)](https://github.com/Shopify/swcify/actions/workflows/js_test.yml)
 
-This repo wraps SWC with a napi-rs package implements custom transforms used by Shopify.
+This repo wraps swc with a napi-rs package that implements custom transforms used by Shopify.
 
 ### Build Toolchain
 
@@ -11,10 +11,10 @@ This repo wraps SWC with a napi-rs package implements custom transforms used by 
 
    `yarn install`
 
-2. Setup Rust
+2. Set up Rust
 
    - [Install Rustup](https://www.rust-lang.org/tools/install)
-   - You'll need the rust nightly version listed in `rust-toolchain` in order to build this project. To install:
+   - You'll need the Rust nightly version listed in `rust-toolchain` in order to build this project. To install:
 
      `rustup toolchain install nightly`
 
@@ -22,7 +22,7 @@ This repo wraps SWC with a napi-rs package implements custom transforms used by 
 
      `rustup default nightly`
 
-3. **Mac:** You may need to intall dev tools/dependencies with:
+3. **macOS:** You may need to install dev tools/dependencies with:
 
    `xcode-select --install`
 
@@ -30,12 +30,12 @@ This repo wraps SWC with a napi-rs package implements custom transforms used by 
 
    `yarn build`
 
-### Using locally from a node project
+### Using locally from a Node.js project
 
 This package is currently not deployed anywhere, so there is a fairly manual process to use it.
 
 - clone the repo
-- Setup the build toolchain (see above)
+- Set up the build toolchain (see above)
 - make your code changes
 - `npx yalc publish`
 - in your other repo `npx yalc install`
