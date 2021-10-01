@@ -1,4 +1,3 @@
-
 import _en from "./translations/en.json";
 import React from "react";
 import {useI18n} from "@shopify/react-i18n";
@@ -9,7 +8,7 @@ export default function MyComponent() {
     fallback: _en,
     translations(locale) {
       return;
-    }
+    },
   });
   return i18n.translate("key");
 }

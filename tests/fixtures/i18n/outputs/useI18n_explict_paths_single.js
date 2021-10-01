@@ -11,8 +11,10 @@ export default function MyComponent() {
         return;
       }
 
-      return import(/* webpackChunkName: "MyComponent_1yjjg76ouuk0h-i18n" */ "./translations/fr.json").then((dict) => dict && dict.default);
-    }
+      return import(
+        /* webpackChunkName: "MyComponent_1yjjg76ouuk0h-i18n" */ "./translations/fr.json"
+      ).then((dict) => dict && dict.default);
+    },
   });
   return i18n.translate("key");
 }
