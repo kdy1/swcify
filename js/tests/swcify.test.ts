@@ -26,7 +26,9 @@ describe('swcify', () => {
         console.log("hi ", foo);
       }
     `,
+      {filename: './file.js'},
     );
+
     expect(trim(code)).toMatch(trimmed`
     import { foo } from 'bar';
     export function helloWorld() {
@@ -44,6 +46,7 @@ describe('swcify', () => {
         console.log("hi ", foo);
       }
     `,
+      {filename: './file.js'},
     );
     expect(trim(code)).toMatch(trimmed`
     import { foo } from 'bar';
@@ -69,6 +72,7 @@ describe('swcify', () => {
           target: 'es2017',
           externalHelpers: true,
         },
+        filename: './file.js',
       },
     );
 
@@ -102,6 +106,7 @@ describe('Custom AsyncTransform', () => {
           jsc: {
             target: 'es2020',
           },
+          filename: './file.js',
         }),
       ),
     ).toBe(
@@ -113,6 +118,59 @@ describe('Custom AsyncTransform', () => {
               ,
               id: ()=>require.resolveWeak("./Foo")
         });
+      `),
+    );
+  });
+});
+
+describe('i18n transform', () => {
+  it('injects arguments into with i18n when adjacent exist', () => {
+    const code = trim(`
+    import React from "react";
+    import { withI18n } from "@shopify/react-i18n";
+    
+    function MyComponent({ i18n }) {
+      return i18n.translate("key");
+    }
+    
+    export default withI18n()(MyComponent);    
+      `);
+    const filenameHash = '1asowhql4ye2g';
+    expect(
+      trim(
+        swc(code, {
+          jsc: {
+            target: 'es2020',
+          },
+          filename: 'tests/fixtures/i18n/translations/adjacent/MyComponent.js',
+        }),
+      ),
+    ).toBe(
+      trim(`
+      import _en from "./translations/en.json";
+      import React from "react";
+      import { withI18n } from "@shopify/react-i18n";
+      
+      function MyComponent({ i18n  }) {
+        return i18n.translate("key");
+      }
+      
+      export default withI18n({
+        id: "MyComponent_${filenameHash}",
+        fallback: _en,
+        translations (locale) {
+          if ([
+            "de",
+            "fr",
+            "zh-TW"
+          ].indexOf(locale) < 0) {
+            return;
+          }
+      
+          return import(/* webpackChunkName: "MyComponent_${filenameHash}-i18n", webpackMode: "lazy-once" */ \`./translations/\${locale}.json\`).then((dict)=>dict && dict.default
+          );
+        }
+      })(MyComponent);      
       `),
     );
   });
