@@ -5,6 +5,7 @@
 use crate::{
     async_transform::AsyncTransform,
     i18n_transform::{i18n_transform, I18nMode},
+    webworker_transform::WebWorkerTransform,
 };
 use crate::{
     complete_output, get_compiler,
@@ -158,7 +159,8 @@ fn custom_transforms<'a>(options: CustomTransformOptions<'a>) -> (impl Fold + 'a
             I18nMode::WithDynamicPaths,
             String::from("en"),
             options.comments
-        )
+        ),
+        WebWorkerTransform::with_defaults()
     );
     let after_pass = noop();
     (before_pass, after_pass)
