@@ -8,11 +8,14 @@ use crate::{
 };
 use crate::{
     complete_output, get_compiler,
-    util::{CtxtExt, MapErr},
+    util::{deserialize_json, CtxtExt, MapErr},
 };
 use anyhow::{Context as _, Error};
 use napi::{CallContext, Env, JsBoolean, JsObject, JsString, Task};
-use std::sync::Arc;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use swc::config::Options;
 use swc::{try_with_handler, Compiler, TransformOutput};
 use swc_common::{chain, comments::Comments, FileName, SourceFile};
@@ -23,8 +26,12 @@ use swc_ecmascript::visit::Fold;
 /// Input to transform
 #[derive(Debug)]
 pub enum Input {
+    /// json string
+    Program(String),
     /// Raw source code.
     Source(Arc<SourceFile>),
+    /// File
+    File(PathBuf),
 }
 
 pub struct TransformTask {
@@ -40,6 +47,18 @@ impl Task for TransformTask {
     fn compute(&mut self) -> napi::Result<Self::Output> {
         try_with_handler(self.c.cm.clone(), |handler| {
             self.c.run(|| match self.input {
+                Input::Program(ref s) => {
+                    let program: Program =
+                        deserialize_json(&s).expect("failed to deserialize Program");
+                    // TODO: Source map
+                    self.c.process_js(&handler, program, &self.options)
+                }
+
+                Input::File(ref path) => {
+                    let fm = self.c.cm.load_file(path).context("failed to load file")?;
+                    self.c.process_js_file(fm, &handler, &self.options)
+                }
+
                 Input::Source(ref s) => {
                     let (before_pass, after_pass) = custom_transforms(CustomTransformOptions {
                         file: s.name.clone(),
@@ -72,7 +91,10 @@ where
 
     let s = cx.get::<JsString>(0)?.into_utf8()?.as_str()?.to_owned();
     let is_module = cx.get::<JsBoolean>(1)?;
-    let options: Options = cx.get_deserialized(2)?;
+    let mut options: Options = cx.get_deserialized(2)?;
+    if !options.filename.is_empty() {
+        options.config.adjust(Path::new(&options.filename));
+    }
 
     let task = op(&c, s, is_module.get_value()?, options);
 
@@ -87,17 +109,21 @@ where
 
     let s = cx.get::<JsString>(0)?.into_utf8()?;
     let is_module = cx.get::<JsBoolean>(1)?;
-    let options: Options = cx.get_deserialized(2)?;
+    let mut options: Options = cx.get_deserialized(2)?;
+
+    if !options.filename.is_empty() {
+        options.config.adjust(Path::new(&options.filename));
+    }
 
     let output = try_with_handler(c.cm.clone(), |handler| {
         c.run(|| {
             if is_module.get_value()? {
                 let program: Program =
-                    serde_json::from_str(s.as_str()?).context("failed to deserialize Program")?;
+                    deserialize_json(s.as_str()?).context("failed to deserialize Program")?;
                 c.process_js(&handler, program, &options)
             } else {
                 let fm =
-                    op(&c, s.as_str()?.to_string(), &options).context("failed to load file.")?;
+                    op(&c, s.as_str()?.to_string(), &options).context("failed to load file")?;
                 let (before_pass, after_pass) = custom_transforms(CustomTransformOptions {
                     file: fm.name.clone(),
                     comments: c.comments(),
@@ -113,15 +139,20 @@ where
 
 #[js_function(4)]
 pub fn transform(cx: CallContext) -> napi::Result<JsObject> {
-    schedule_transform(cx, |c, src, _, options| {
-        let input = Input::Source(c.cm.new_source_file(
-            if options.filename.is_empty() {
-                FileName::Anon
-            } else {
-                FileName::Real(options.filename.clone().into())
-            },
-            src,
-        ));
+    schedule_transform(cx, |c, src, is_module, options| {
+        let input = if is_module {
+            Input::Program(src)
+        } else {
+            Input::Source(c.cm.new_source_file(
+                if options.filename.is_empty() {
+                    FileName::Anon
+                } else {
+                    FileName::Real(options.filename.clone().into())
+                },
+                src,
+            ))
+        };
+
         TransformTask {
             c: c.clone(),
             input,
