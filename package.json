@@ -39,7 +39,8 @@
     "build": "yarn build:js && yarn build:rust dev",
     "build:ci": "yarn build:js && yarn build:rust dist",
     "build:rust": "napi build --platform",
-    "build:js": "loom build"
+    "build:js": "loom build",
+    "publish:local": "yarn build && npx yalc publish"
   },
   "dependencies": {
     "@jest/transform": "^27.2.1",
