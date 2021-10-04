@@ -87,7 +87,7 @@ const WEBPACK_OPTIONS = [
 
 function removeWebpackOptions(loaderOptions: Options & OptionObject): Options {
   return Object.keys(loaderOptions)
-    .filter((key) => WEBPACK_OPTIONS.includes(key))
+    .filter((key) => !WEBPACK_OPTIONS.includes(key))
     .reduce((obj: any, key: string) => {
       obj[key] = loaderOptions[key];
       return obj;
