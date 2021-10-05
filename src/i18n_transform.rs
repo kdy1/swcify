@@ -266,10 +266,10 @@ fn insert_import(module: &mut Module, import_id: &JsWord, import_src: &str) {
         span: DUMMY_SP,
         specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
             span: DUMMY_SP,
-            local: Ident::new(import_id.clone().into(), DUMMY_SP),
+            local: Ident::new(import_id.clone(), DUMMY_SP),
         })],
         src: Str {
-            value: import_src.clone().into(),
+            value: import_src.into(),
             span: DUMMY_SP,
             kind: Default::default(),
             has_escape: Default::default(),
@@ -550,7 +550,7 @@ fn explicit_paths_define_arrow_fn_stmt() -> Stmt {
                 "returnDefault".into(),
                 DUMMY_SP,
             ))),
-            definite: true,
+            definite: false,
             init: Some(Box::new(default_dict_arrow_fn())),
         }],
     }))
@@ -693,7 +693,7 @@ fn get_translation_file_paths(filename: &Path, translation_dir_name: &str) -> Op
     }
 }
 
-fn get_locale_ids(translation_file_paths: &Vec<PathBuf>, fallback_locale: &String) -> Vec<String> {
+fn get_locale_ids(translation_file_paths: &[PathBuf], fallback_locale: &str) -> Vec<String> {
     let mut locale_ids = translation_file_paths
         .into_iter()
         .map(|path| String::from(path.file_stem().unwrap().to_str().unwrap()))
