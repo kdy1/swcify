@@ -7,13 +7,14 @@ use swc_ecmascript::{
         eval::{EvalResult, Evaluator},
         marks::Marks,
     },
-    utils::{ident::IdentLike, ExprExt, Id},
+    utils::{ident::IdentLike, private_ident, ExprExt, Id},
     visit::{Fold, FoldWith, Node, Visit, VisitWith},
 };
 
 pub struct WebWorker {
     data: Data,
     eval: Evaluator,
+    added_imports: Vec<ModuleItem>,
 }
 
 struct ImportAnalyzer<'a> {
@@ -31,22 +32,24 @@ impl Fold for WebWorker {
     // noop_fold_type!()
 
     fn fold_call_expr(&mut self, e: CallExpr) -> CallExpr {
-        let e = e.fold_children_with(self);
+        let mut e = e.fold_children_with(self);
 
         match &e.callee {
             ExprOrSuper::Expr(callee) => match &**callee {
                 Expr::Ident(callee) => {
+                    let callee_span = callee.span;
+
                     // This is a call to createWorkerFactory
                     if self.data.create_worker_factory.contains(&callee.to_id()) {
                         if e.args.len() == 1 && e.args[0].spread.is_none() {
-                            match &*e.args[0].expr {
+                            match &mut *e.args[0].expr {
                                 Expr::Arrow(ArrowExpr {
                                     params,
                                     body: BlockStmtOrExpr::Expr(body),
                                     is_async: false,
                                     is_generator: false,
                                     ..
-                                }) if params.is_empty() => match &**body {
+                                }) if params.is_empty() => match &mut **body {
                                     Expr::Call(CallExpr {
                                         callee: ExprOrSuper::Expr(callee),
                                         args,
@@ -60,6 +63,39 @@ impl Fold for WebWorker {
                                                         //
                                                         // import workerStuff from '@shopify/web-worker/webpack-loader!./worker';
                                                         // createWorkerFactory(workerStuff);
+
+                                                        let src = Str {
+                                                            span:s.span,
+                                                            value: format!("@shopify/web-worker/webpack-loader!{}",s.value).into(),
+                                                            has_escape: false,
+                                                            kind: Default::default(),
+                                                        };
+
+                                                        let worker_stuff =
+                                                            private_ident!("workerFunction");
+
+                                                        args[0].expr = Box::new(Expr::Ident(
+                                                            worker_stuff.clone(),
+                                                        ));
+
+                                                        let specifier = ImportSpecifier::Default(
+                                                            ImportDefaultSpecifier {
+                                                                span: DUMMY_SP,
+                                                                local: worker_stuff,
+                                                            },
+                                                        );
+
+                                                        self.added_imports.push(
+                                                            ModuleItem::ModuleDecl(
+                                                                ModuleDecl::Import(ImportDecl {
+                                                                    span: callee_span,
+                                                                    specifiers: vec![specifier],
+                                                                    src,
+                                                                    type_only: Default::default(),
+                                                                    asserts: Default::default(),
+                                                                }),
+                                                            ),
+                                                        )
                                                     }
                                                     _ => {
                                                         // TODO(kdy1): Should we report an error?
