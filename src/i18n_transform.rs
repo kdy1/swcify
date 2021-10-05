@@ -468,21 +468,41 @@ fn import_promise_return_stmt(
             kind: StrKind::Synthesized {},
             has_escape: false,
         }))),
-        None => Box::new(Expr::Tpl(Tpl {
-            span: comment_span,
-            exprs: vec![],
-            quasis: vec![TplElement {
+        None => {
+            // `./translations/${locale}.json`
+
+            let translations = TplElement {
                 span: DUMMY_SP,
                 tail: false,
                 cooked: None,
                 raw: Str {
-                    value: "./translations/${locale}.json".into(),
+                    value: "./translations/".into(),
                     span: DUMMY_SP,
                     kind: StrKind::Synthesized,
                     has_escape: false,
                 },
-            }],
-        })),
+            };
+
+            let locale = Box::new(Expr::Ident(Ident::new("locale".into(), comment_span)));
+
+            let json = TplElement {
+                span: DUMMY_SP,
+                tail: false,
+                cooked: None,
+                raw: Str {
+                    value: ".json".into(),
+                    span: DUMMY_SP,
+                    kind: StrKind::Synthesized,
+                    has_escape: false,
+                },
+            };
+
+            Box::new(Expr::Tpl(Tpl {
+                span: comment_span,
+                exprs: vec![locale],
+                quasis: vec![translations, json],
+            }))
+        }
     };
 
     Stmt::Return(ReturnStmt {
