@@ -1,13 +1,19 @@
 use rustc_hash::FxHashSet;
+use swc_atoms::js_word;
 use swc_common::DUMMY_SP;
 use swc_ecmascript::{
     ast::*,
-    utils::{ident::IdentLike, Id},
+    minifier::{
+        eval::{EvalResult, Evaluator},
+        marks::Marks,
+    },
+    utils::{ident::IdentLike, ExprExt, Id},
     visit::{Fold, FoldWith, Node, Visit, VisitWith},
 };
 
 pub struct WebWorker {
     data: Data,
+    eval: Evaluator,
 }
 
 struct ImportAnalyzer<'a> {
@@ -24,7 +30,65 @@ impl Fold for WebWorker {
     // TODO(kdy1): Apply this after https://github.com/swc-project/swc/pull/2347 is merged
     // noop_fold_type!()
 
-    // fold_script can be implemented using same code, but it seems not neccessary for shopify.
+    fn fold_call_expr(&mut self, e: CallExpr) -> CallExpr {
+        let e = e.fold_children_with(self);
+
+        match &e.callee {
+            ExprOrSuper::Expr(callee) => match &**callee {
+                Expr::Ident(callee) => {
+                    // This is a call to createWorkerFactory
+                    if self.data.create_worker_factory.contains(&callee.to_id()) {
+                        if e.args.len() == 1 && e.args[0].spread.is_none() {
+                            match &*e.args[0].expr {
+                                Expr::Arrow(ArrowExpr {
+                                    params,
+                                    body: BlockStmtOrExpr::Expr(body),
+                                    is_async: false,
+                                    is_generator: false,
+                                    ..
+                                }) if params.is_empty() => match &**body {
+                                    Expr::Call(CallExpr {
+                                        callee: ExprOrSuper::Expr(callee),
+                                        args,
+                                        ..
+                                    }) => {
+                                        if callee.is_ident_ref_to(js_word!("import")) {
+                                            if args.len() == 1 && args[0].spread.is_none() {
+                                                match self.eval.eval(&args[0].expr) {
+                                                    Some(EvalResult::Lit(Lit::Str(s))) => {
+                                                        // TODO(kdy1):
+                                                        //
+                                                        // import workerStuff from '@shopify/web-worker/webpack-loader!./worker';
+                                                        // createWorkerFactory(workerStuff);
+                                                    }
+                                                    _ => {
+                                                        // TODO(kdy1): Should we report an error?
+                                                    }
+                                                }
+                                            } else {
+                                                // TODO(kdy1): Should we report an error?
+                                            }
+                                        }
+                                    }
+
+                                    _ => {}
+                                },
+
+                                _ => {}
+                            }
+                        } else {
+                            // TODO(kdy1): Should we report an error?
+                        }
+                    }
+                }
+
+                _ => {}
+            },
+            _ => {}
+        }
+
+        e
+    }
 
     fn fold_module(&mut self, m: Module) -> Module {
         {
@@ -37,6 +101,8 @@ impl Fold for WebWorker {
         if self.data.create_worker_factory.is_empty() {
             return m;
         }
+
+        self.eval = Evaluator::new(m.clone(), Marks::new());
 
         m.fold_children_with(self)
     }

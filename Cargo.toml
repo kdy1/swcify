@@ -18,7 +18,7 @@ swc = "0.51"
 swc_atoms = "0.2.6"
 swc_common = { version = "0.12", features = ["tty-emitter", "sourcemap"] }
 swc_node_base = "0.2.0"
-swc_ecmascript = { version = "0.63", features = ["codegen", "optimization", "parser", "react", "transforms", "typescript", "utils", "visit"] }
+swc_ecmascript = { version = "0.63", features = ["codegen", "minifier", "optimization", "parser", "react", "transforms", "typescript", "utils", "visit"] }
 swc_ecma_preset_env = "0.42"
 maplit = "1.0.2"
 rustc-hash = "1.1.0"
