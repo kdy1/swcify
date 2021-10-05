@@ -1,4 +1,4 @@
-use rustc_hash::FxHashSet;
+use rustc_hash::FxHashMap;
 use swc_atoms::js_word;
 use swc_common::DUMMY_SP;
 use swc_ecmascript::{
@@ -24,7 +24,9 @@ struct ImportAnalyzer<'a> {
 #[derive(Default)]
 struct Data {
     /// All import specifiers of `createWorkerFactory`.
-    create_worker_factory: FxHashSet<Id>,
+    ///
+    ///  - Value means plain
+    create_worker_factory: FxHashMap<Id, bool>,
 }
 
 impl Fold for WebWorker {
@@ -40,7 +42,12 @@ impl Fold for WebWorker {
                     let callee_span = callee.span;
 
                     // This is a call to createWorkerFactory
-                    if self.data.create_worker_factory.contains(&callee.to_id()) {
+                    if let Some(plain) = self
+                        .data
+                        .create_worker_factory
+                        .get(&callee.to_id())
+                        .copied()
+                    {
                         if e.args.len() == 1 && e.args[0].spread.is_none() {
                             match &mut *e.args[0].expr {
                                 Expr::Arrow(ArrowExpr {
@@ -149,18 +156,30 @@ impl Visit for ImportAnalyzer<'_> {
     // noop_visit_type!()
 
     fn visit_import_decl(&mut self, n: &ImportDecl, _: &dyn Node) {
-        if &*n.src.value == "@shopify/web-worker" {
+        if &*n.src.value == "@shopify/web-worker" || &*n.src.value == "@shopify/react-web-worker" {
             for s in &n.specifiers {
                 match s {
                     ImportSpecifier::Named(s) => match &s.imported {
                         Some(imported) => {
                             if &*imported.sym == "createWorkerFactory" {
-                                self.data.create_worker_factory.insert(s.local.to_id());
+                                self.data
+                                    .create_worker_factory
+                                    .insert(s.local.to_id(), false);
+                            } else if &*imported.sym == "createPlainWorkerFactory" {
+                                self.data
+                                    .create_worker_factory
+                                    .insert(s.local.to_id(), true);
                             }
                         }
                         None => {
                             if &*s.local.sym == "createWorkerFactory" {
-                                self.data.create_worker_factory.insert(s.local.to_id());
+                                self.data
+                                    .create_worker_factory
+                                    .insert(s.local.to_id(), false);
+                            } else if &*s.local.sym == "createPlainWorkerFactory" {
+                                self.data
+                                    .create_worker_factory
+                                    .insert(s.local.to_id(), true);
                             }
                         }
                     },
