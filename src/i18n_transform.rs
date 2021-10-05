@@ -16,7 +16,7 @@ use swc_ecmascript::ast::{
     SwitchCase, SwitchStmt, Tpl, TplElement, VarDecl, VarDeclKind, VarDeclarator,
 };
 use swc_ecmascript::utils::ident::{Id, IdentLike};
-use swc_ecmascript::utils::ExprFactory;
+use swc_ecmascript::utils::{member_expr, ExprFactory};
 use swc_ecmascript::visit::{Fold, FoldWith};
 
 const I18N_PKG_NAME: &str = "@shopify/react-i18n";
@@ -346,15 +346,7 @@ fn fallback_expr_from_dictionary(dict_id: &str) -> Box<Expr> {
         computed: true,
         obj: ExprOrSuper::Expr(Box::new(Expr::Call(CallExpr {
             span: DUMMY_SP,
-            callee: ExprOrSuper::Expr(Box::new(Expr::Member(MemberExpr {
-                span: DUMMY_SP,
-                obj: ExprOrSuper::Expr(Box::new(Expr::Ident(Ident::new(
-                    "Object".into(),
-                    DUMMY_SP,
-                )))),
-                prop: Box::new(Expr::Ident(Ident::new("values".into(), DUMMY_SP))),
-                computed: false,
-            }))),
+            callee: member_expr!(DUMMY_SP, Object.values).as_callee(),
             args: vec![Ident::new(dict_id.into(), DUMMY_SP).as_arg()],
             type_args: None,
         }))),
@@ -622,15 +614,7 @@ fn dictionary_index_return_stmt(dict_id: &str) -> Stmt {
         span: DUMMY_SP,
         arg: Some(Box::new(Expr::Call(CallExpr {
             span: DUMMY_SP,
-            callee: ExprOrSuper::Expr(Box::new(Expr::Member(MemberExpr {
-                span: DUMMY_SP,
-                obj: ExprOrSuper::Expr(Box::new(Expr::Ident(Ident::new(
-                    "Promise".into(),
-                    DUMMY_SP,
-                )))),
-                prop: Box::new(Expr::Ident(Ident::new("resolve".into(), DUMMY_SP))),
-                computed: false,
-            }))),
+            callee: member_expr!(DUMMY_SP, Promise.resolve).as_callee(),
             args: vec![MemberExpr {
                 span: DUMMY_SP,
                 computed: true,
