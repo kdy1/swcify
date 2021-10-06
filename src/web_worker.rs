@@ -76,17 +76,16 @@ impl Fold for WebWorker {
                                                             kind: Default::default(),
                                                         };
 
-                                                        let worker_stuff =
-                                                            private_ident!("workerFunction");
+                                                        let worker_fn = private_ident!("worker");
 
                                                         args[0].expr = Box::new(Expr::Ident(
-                                                            worker_stuff.clone(),
+                                                            worker_fn.clone(),
                                                         ));
 
                                                         let specifier = ImportSpecifier::Default(
                                                             ImportDefaultSpecifier {
                                                                 span: DUMMY_SP,
-                                                                local: worker_stuff,
+                                                                local: worker_fn,
                                                             },
                                                         );
 
