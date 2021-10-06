@@ -21,57 +21,6 @@ jest.setTimeout(30_000);
 // @TODO: Disabled for now because these tests are flaky and take a long time to run
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
-    it('supports using arbitrary webpack plugins on the worker build', async () => {
-        const magicVar = { id: '__MAGIC_VAR__', value: 'It’s magic!' };
-        const testId = 'WorkerResult';
-
-        await withContext('webpack-plugins', async (context) => {
-            const { workspace, browser } = context;
-
-            await workspace.write(
-                mainFile,
-                `
-           import {createWorkerFactory} from '@shopify/web-worker';
- 
-           const worker = createWorkerFactory(() => import('./worker'))();
- 
-           (async () => {
-             const element = document.createElement('div');
-             element.setAttribute('id', ${JSON.stringify(testId)});
-             element.textContent = await worker.magicVar();
-             document.body.appendChild(element);
-           })();
-         `,
-            );
-
-            await workspace.write(
-                workerFile,
-                `
-           export function magicVar() {
-             return ${magicVar.id};
-           }
-         `,
-            );
-
-            await runWebpack(context, {
-                webpackPlugin: new WebWorkerPlugin({
-                    plugins: [
-                        new DefinePlugin({
-                            [magicVar.id]: JSON.stringify(magicVar.value),
-                        }),
-                    ],
-                }),
-            });
-
-            const page = await browser.go();
-            const workerElement = await page.waitForSelector(`#${testId}`);
-            const textContent = await workerElement!.evaluate(
-                (element) => element.innerHTML,
-            );
-
-            expect(textContent).toBe(magicVar.value);
-        });
-    });
 
     it('supports non-href public paths', async () => {
         const greetingPrefix = 'Hello ';
