@@ -17,12 +17,15 @@ fn syntax() -> Syntax {
 }
 
 #[derive(Debug, Default, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct TestConfig {
     #[serde(default)]
     throws: Option<String>,
     #[serde(default)]
     use_entry: bool,
+
+    #[serde(default)]
+    noop: bool,
 }
 
 #[testing::fixture("tests/fixture/web-worker/**/input.js")]
@@ -33,13 +36,18 @@ fn fixture(input: PathBuf) {
         "{}".to_string()
     });
     // TODO(kdy1): Use config.
-    let _config: TestConfig = serde_json::from_str(&config).expect("failed to parse config.json");
+    let config: TestConfig = serde_json::from_str(&config).expect("failed to parse config.json");
+
+    if config.noop {
+        panic!("Reference is not correct")
+    }
 
     test_fixture(
         syntax(),
         &|_tr| {
+            let config = swcify::web_worker::Config { noop: config.noop };
             // resolver is required.
-            chain!(resolver(), swcify::web_worker::WebWorker::default())
+            chain!(resolver(), swcify::web_worker::web_worker(config))
         },
         &input,
         &output,
