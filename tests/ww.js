@@ -3,50 +3,6 @@
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
 
-  it('allows setting a custom worker file name using the webpackChunkName directive', async () => {
-    const name = 'myFancyWorker';
-    const testId = 'WorkerResult';
-
-    await withContext('custom-worker-name', async (context) => {
-      const { workspace, browser } = context;
-
-      await workspace.write(
-        mainFile,
-        `
-           import {createWorkerFactory} from '@shopify/web-worker';
- 
-           const worker = createWorkerFactory(() => import(/* webpackChunkName: ${JSON.stringify(
-          name,
-        )} */ './worker'))();
- 
-           (async () => {
-             const element = document.createElement('div');
-             element.setAttribute('id', ${JSON.stringify(testId)});
-             document.body.appendChild(element);
-           })();
-         `,
-      );
-
-      await workspace.write(
-        workerFile,
-        `
-           export default function(name) {
-             return 'Hello world';
-           }
-         `,
-      );
-
-      await runWebpack(context);
-
-      const page = await browser.go();
-      await page.waitForSelector(`#${testId}`);
-
-      expect(await getWorkerSource(page.workers()[0], page)).toContain(
-        `${name}.worker`,
-      );
-    });
-  });
-
   it('can create a "plain" worker factory that can produce workers wrapping the original module', async () => {
     const greetingPrefix = 'Hello ';
     const greetingTarget = 'world';
