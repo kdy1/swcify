@@ -34,6 +34,6 @@ function start() {
 
 function done() {
     const element = document.createElement('div');
-    element.setAttribute('id', "WorkerResult);
-             document.body.appendChild(element);
+    element.setAttribute('id', "WorkerResult");
+    document.body.appendChild(element);
 }
