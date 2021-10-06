@@ -3,6 +3,7 @@ use std::mem::take;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use swc_atoms::js_word;
+use swc_common::Spanned;
 use swc_common::DUMMY_SP;
 use swc_ecmascript::{
     ast::*,
@@ -56,6 +57,19 @@ struct LoaderOptions {
 }
 
 impl WebWorker {
+    /// Returns `Some(plain)` if calleed is `createWorkerFactory`.
+    fn extract_call_to_create_worker_factory(&mut self, callee: &Expr) -> Option<bool> {
+        match callee {
+            Expr::Ident(callee) => self
+                .data
+                .create_worker_factory
+                .get(&callee.to_id())
+                .copied(),
+
+            _ => None,
+        }
+    }
+
     fn extract_import_from_arrow_arg(&mut self, args: &[ExprOrSpread]) -> Option<Str> {
         if args.len() == 1 && args[0].spread.is_none() {
             match &*args[0].expr {
@@ -115,67 +129,49 @@ impl Fold for WebWorker {
 
         match &e.callee {
             ExprOrSuper::Expr(callee) => {
-                match &**callee {
-                    Expr::Ident(callee) => {
-                        let callee_span = callee.span;
+                if let Some(plain) = self.extract_call_to_create_worker_factory(&callee) {
+                    let callee_span = callee.span();
 
-                        // This is a call to createWorkerFactory
-                        if let Some(plain) = self
-                            .data
-                            .create_worker_factory
-                            .get(&callee.to_id())
-                            .copied()
-                        {
-                            tracing::info!(
-                                plain = plain,
-                                "Find a call to createWorkerFactory: {}",
-                                callee,
-                            );
+                    if let Some(s) = self.extract_import_from_arrow_arg(&e.args) {
+                        // import workerStuff from '@shopify/web-worker/webpack-loader!./worker';
+                        // createWorkerFactory(workerStuff);
 
-                            if let Some(s) = self.extract_import_from_arrow_arg(&e.args) {
-                                // import workerStuff from '@shopify/web-worker/webpack-loader!./worker';
-                                // createWorkerFactory(workerStuff);
+                        // TOOD(kdy1): Parse `webpackChunkName` in comments.
 
-                                // TOOD(kdy1): Parse `webpackChunkName` in comments.
+                        let loader_opts = LoaderOptions { plain, name: None };
+                        let options_json = serde_json::to_string(&loader_opts).unwrap();
 
-                                let loader_opts = LoaderOptions { plain, name: None };
-                                let options_json = serde_json::to_string(&loader_opts).unwrap();
+                        let src = Str {
+                            span: s.span,
+                            value: format!(
+                                "@shopify/web-worker/webpack-loader?{}!{}",
+                                options_json, s.value
+                            )
+                            .into(),
+                            has_escape: false,
+                            kind: Default::default(),
+                        };
 
-                                let src = Str {
-                                    span: s.span,
-                                    value: format!(
-                                        "@shopify/web-worker/webpack-loader?{}!{}",
-                                        options_json, s.value
-                                    )
-                                    .into(),
-                                    has_escape: false,
-                                    kind: Default::default(),
-                                };
+                        let worker_fn = private_ident!("_worker");
 
-                                let worker_fn = private_ident!("_worker");
+                        e.args[0].expr = Box::new(Expr::Ident(worker_fn.clone()));
 
-                                e.args[0].expr = Box::new(Expr::Ident(worker_fn.clone()));
+                        let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
+                            span: DUMMY_SP,
+                            local: worker_fn,
+                        });
 
-                                let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
-                                    span: DUMMY_SP,
-                                    local: worker_fn,
-                                });
-
-                                self.added_imports
-                                    .push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
-                                        span: callee_span,
-                                        specifiers: vec![specifier],
-                                        src,
-                                        type_only: Default::default(),
-                                        asserts: Default::default(),
-                                    })))
-                            } else {
-                                // TODO(kdy1): Should we report an error?
-                            }
-                        }
+                        self.added_imports
+                            .push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+                                span: callee_span,
+                                specifiers: vec![specifier],
+                                src,
+                                type_only: Default::default(),
+                                asserts: Default::default(),
+                            })))
+                    } else {
+                        // TODO(kdy1): Should we report an error?
                     }
-
-                    _ => {}
                 }
             }
             _ => {}
