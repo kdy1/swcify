@@ -2,59 +2,16 @@
 // @TODO: Disabled for now because these tests are flaky and take a long time to run
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
-    it('creates a noop worker that throws when called if the noop option is passed', async () => {
-        const testId = 'WorkerResult';
+  it('terminates the worker from the main thread', async () => {
+    const testId = 'WorkerResult';
+    const terminateId = 'Terminate';
 
-        await withContext('noop', async (context) => {
-            const { workspace, browser } = context;
+    await withContext('terminate', async (context) => {
+      const { workspace, browser } = context;
 
-            await workspace.write(
-                mainFile,
-                `
-           import {createWorkerFactory} from '@shopify/web-worker';
- 
-           const worker = createWorkerFactory(() => import('./worker'))();
- 
-           (async () => {
-             const element = document.createElement('div');
-             element.setAttribute('id', ${JSON.stringify(testId)});
- 
-             try {
-               await worker.willThrow();
-             } catch (error) {
-               element.textContent = error.message;
-             }
- 
-             document.body.appendChild(element);
-           })();
-         `,
-            );
-
-            await runWebpack(context, {
-                babelPluginOptions: { noop: true },
-            });
-
-            const page = await browser.go();
-            const workerElement = await page.waitForSelector(`#${testId}`);
-            const textContent = await workerElement!.evaluate(
-                (element) => element.innerHTML,
-            );
-
-            expect(textContent).toMatch(/noop worker/i);
-            expect(page.workers()).toHaveLength(0);
-        });
-    });
-
-    it('terminates the worker from the main thread', async () => {
-        const testId = 'WorkerResult';
-        const terminateId = 'Terminate';
-
-        await withContext('terminate', async (context) => {
-            const { workspace, browser } = context;
-
-            await workspace.write(
-                mainFile,
-                `
+      await workspace.write(
+        mainFile,
+        `
          import {createWorkerFactory, terminate} from '@shopify/web-worker';
          self.worker = createWorkerFactory(() => import('./worker'))();
  
@@ -73,40 +30,40 @@ describe.skip('web-worker', () => {
            document.body.appendChild(element);
          }
        `,
-            );
+      );
 
-            await workspace.write(
-                workerFile,
-                `
+      await workspace.write(
+        workerFile,
+        `
          export function greet() {
            return 'Hi, friend!';
          }
        `,
-            );
+      );
 
-            await runWebpack(context);
+      await runWebpack(context);
 
-            const page = await browser.go();
-            await page.waitForSelector(`#${testId}`);
-            expect(page.workers()).toHaveLength(1);
+      const page = await browser.go();
+      await page.waitForSelector(`#${testId}`);
+      expect(page.workers()).toHaveLength(1);
 
-            await page.evaluate(() => (self as any).terminateWorker());
-            await page.waitForSelector(`#${terminateId}`);
-            expect(page.workers()).toHaveLength(0);
-        });
+      await page.evaluate(() => (self as any).terminateWorker());
+      await page.waitForSelector(`#${terminateId}`);
+      expect(page.workers()).toHaveLength(0);
     });
+  });
 
-    it('throws an error when calling a function on a terminated worker from the main thread', async () => {
-        const greetingPrefix = 'Hello ';
-        const greetingTarget = 'world';
-        const testId = 'WorkerResult';
+  it('throws an error when calling a function on a terminated worker from the main thread', async () => {
+    const greetingPrefix = 'Hello ';
+    const greetingTarget = 'world';
+    const testId = 'WorkerResult';
 
-        await withContext('error-on-terminated-worker-calls', async (context) => {
-            const { workspace, browser } = context;
+    await withContext('error-on-terminated-worker-calls', async (context) => {
+      const { workspace, browser } = context;
 
-            await workspace.write(
-                mainFile,
-                `
+      await workspace.write(
+        mainFile,
+        `
            import {createWorkerFactory, terminate} from '@shopify/web-worker';
            self.worker = createWorkerFactory(() => import('./worker'))();
            (async () => {
@@ -114,8 +71,8 @@ describe.skip('web-worker', () => {
              let result;
              try {
                result = await self.worker.greet(${JSON.stringify(
-                    greetingTarget,
-                )});
+          greetingTarget,
+        )});
              } catch (error){
                result = error.toString();
              }
@@ -125,39 +82,39 @@ describe.skip('web-worker', () => {
              document.body.appendChild(element);
            })();
          `,
-            );
+      );
 
-            await workspace.write(
-                workerFile,
-                `
+      await workspace.write(
+        workerFile,
+        `
            export function greet(name) {
              return \`${greetingPrefix}\${name}\`;
            }
          `,
-            );
+      );
 
-            await runWebpack(context);
+      await runWebpack(context);
 
-            const page = await browser.go();
-            const workerElement = await page.waitForSelector(`#${testId}`);
-            const textContent = await workerElement!.evaluate(
-                (element) => element.innerHTML,
-            );
-            expect(textContent).toBe(
-                'Error: You attempted to call a function on a terminated web worker.',
-            );
-        });
+      const page = await browser.go();
+      const workerElement = await page.waitForSelector(`#${testId}`);
+      const textContent = await workerElement!.evaluate(
+        (element) => element.innerHTML,
+      );
+      expect(textContent).toBe(
+        'Error: You attempted to call a function on a terminated web worker.',
+      );
     });
+  });
 
-    it('releases memory when the worker is terminated', async () => {
-        const testId = 'WorkerResult';
+  it('releases memory when the worker is terminated', async () => {
+    const testId = 'WorkerResult';
 
-        await withContext('terminated-worker-releases-memory', async (context) => {
-            const { workspace, browser } = context;
+    await withContext('terminated-worker-releases-memory', async (context) => {
+      const { workspace, browser } = context;
 
-            await workspace.write(
-                mainFile,
-                `
+      await workspace.write(
+        mainFile,
+        `
            import {createWorkerFactory, terminate} from '@shopify/web-worker';
  
            self.WorkerTestClass = class WorkerTestClass {}
@@ -186,8 +143,8 @@ describe.skip('web-worker', () => {
  
            function start() {
              for (const node of document.querySelectorAll('#' + ${JSON.stringify(
-                    testId,
-                )})) {
+          testId,
+        )})) {
                node.remove();
              }
            }
@@ -198,11 +155,11 @@ describe.skip('web-worker', () => {
              document.body.appendChild(element);
            }
          `,
-            );
+      );
 
-            await workspace.write(
-                workerFile,
-                `
+      await workspace.write(
+        workerFile,
+        `
            import {retain as retainRef, release as releaseRef} from '@shopify/web-worker';
  
            self.memoryTracker = new WeakMap();
@@ -220,40 +177,40 @@ describe.skip('web-worker', () => {
              releaseRef(func);
            }
          `,
-            );
+      );
 
-            await runWebpack(context);
+      await runWebpack(context);
 
-            const page = await browser.go();
-            await page.waitForSelector(`#${testId}`);
+      const page = await browser.go();
+      await page.waitForSelector(`#${testId}`);
 
-            await page.evaluate(() => (self as any).retain());
-            await page.waitForSelector(`#${testId}`);
+      await page.evaluate(() => (self as any).retain());
+      await page.waitForSelector(`#${testId}`);
 
-            expect(await getTestClassInstanceCount(page)).toBe(1);
-            expect(page.workers()).toHaveLength(1);
+      expect(await getTestClassInstanceCount(page)).toBe(1);
+      expect(page.workers()).toHaveLength(1);
 
-            await page.evaluate(() => (self as any).releaseAndTerminate());
-            await page.waitForSelector(`#${testId}`);
+      await page.evaluate(() => (self as any).releaseAndTerminate());
+      await page.waitForSelector(`#${testId}`);
 
-            expect(await getTestClassInstanceCount(page)).toBe(0);
-            expect(page.workers()).toHaveLength(0);
-        });
+      expect(await getTestClassInstanceCount(page)).toBe(0);
+      expect(page.workers()).toHaveLength(0);
     });
+  });
 
-    it('throws an error when calling a function on a terminated worker that has been terminated from the worker file', async () => {
-        const greetingPrefix = 'Hello ';
-        const greetingTarget = 'world';
-        const testId = 'WorkerResult';
+  it('throws an error when calling a function on a terminated worker that has been terminated from the worker file', async () => {
+    const greetingPrefix = 'Hello ';
+    const greetingTarget = 'world';
+    const testId = 'WorkerResult';
 
-        await withContext(
-            'errors-terminated-worker-calls-from-worker-termination',
-            async (context) => {
-                const { workspace, browser } = context;
+    await withContext(
+      'errors-terminated-worker-calls-from-worker-termination',
+      async (context) => {
+        const { workspace, browser } = context;
 
-                await workspace.write(
-                    mainFile,
-                    `
+        await workspace.write(
+          mainFile,
+          `
            import {createWorkerFactory} from '@shopify/web-worker';
            self.worker = createWorkerFactory(() => import('./worker'))();
  
@@ -263,8 +220,8 @@ describe.skip('web-worker', () => {
              let result;
              try {
                result = await self.worker.greet(${JSON.stringify(
-                        greetingTarget,
-                    )});
+            greetingTarget,
+          )});
              } catch (error){
                result = error.toString();
              }
@@ -274,11 +231,11 @@ describe.skip('web-worker', () => {
              document.body.appendChild(element);
            })();
          `,
-                );
+        );
 
-                await workspace.write(
-                    workerFile,
-                    `
+        await workspace.write(
+          workerFile,
+          `
            export async function terminateAttemptFromWorker(){
              self.endpoint.terminate();
            }
@@ -286,33 +243,33 @@ describe.skip('web-worker', () => {
              return \`${greetingPrefix}\${name}\`;
            }
          `,
-                );
-
-                await runWebpack(context);
-
-                const page = await browser.go();
-                const workerElement = await page.waitForSelector(`#${testId}`);
-                const textContent = await workerElement!.evaluate(
-                    (element) => element.innerHTML,
-                );
-                expect(textContent).toBe(
-                    'Error: You attempted to call a function on a terminated web worker.',
-                );
-            },
         );
-    });
 
-    it('allows for multiple workers to be created without naming collisions', async () => {
-        const workerOneMessage = 'Hello';
-        const workerTwoMessage = 'world';
-        const testId = 'WorkerResult';
+        await runWebpack(context);
 
-        await withContext('multiple-workers', async (context) => {
-            const { workspace, browser } = context;
+        const page = await browser.go();
+        const workerElement = await page.waitForSelector(`#${testId}`);
+        const textContent = await workerElement!.evaluate(
+          (element) => element.innerHTML,
+        );
+        expect(textContent).toBe(
+          'Error: You attempted to call a function on a terminated web worker.',
+        );
+      },
+    );
+  });
 
-            await workspace.write(
-                mainFile,
-                `
+  it('allows for multiple workers to be created without naming collisions', async () => {
+    const workerOneMessage = 'Hello';
+    const workerTwoMessage = 'world';
+    const testId = 'WorkerResult';
+
+    await withContext('multiple-workers', async (context) => {
+      const { workspace, browser } = context;
+
+      await workspace.write(
+        mainFile,
+        `
            import {createWorkerFactory} from '@shopify/web-worker';
  
            const workerOne = createWorkerFactory(() => import(/* webpackChunkName: 'MyWorker' */ './worker'))();
@@ -330,53 +287,53 @@ describe.skip('web-worker', () => {
              document.body.appendChild(element);
            })();
          `,
-            );
+      );
 
-            await workspace.write(
-                workerFile,
-                `
+      await workspace.write(
+        workerFile,
+        `
            export default function(name) {
              return ${JSON.stringify(workerOneMessage)};
            }
          `,
-            );
+      );
 
-            await workspace.write(
-                secondWorkerFile,
-                `
+      await workspace.write(
+        secondWorkerFile,
+        `
            export default function(name) {
              return ${JSON.stringify(workerTwoMessage)};
            }
          `,
-            );
+      );
 
-            await runWebpack(context);
+      await runWebpack(context);
 
-            const page = await browser.go();
-            const workerElement = await page.waitForSelector(`#${testId}`);
+      const page = await browser.go();
+      const workerElement = await page.waitForSelector(`#${testId}`);
 
-            const textContent = await workerElement!.evaluate(
-                (element) => element.innerHTML,
-            );
-            expect(textContent).toBe(`${workerOneMessage} ${workerTwoMessage}`);
-        });
+      const textContent = await workerElement!.evaluate(
+        (element) => element.innerHTML,
+      );
+      expect(textContent).toBe(`${workerOneMessage} ${workerTwoMessage}`);
     });
+  });
 
-    it('allows setting a custom worker file name using the webpackChunkName directive', async () => {
-        const name = 'myFancyWorker';
-        const testId = 'WorkerResult';
+  it('allows setting a custom worker file name using the webpackChunkName directive', async () => {
+    const name = 'myFancyWorker';
+    const testId = 'WorkerResult';
 
-        await withContext('custom-worker-name', async (context) => {
-            const { workspace, browser } = context;
+    await withContext('custom-worker-name', async (context) => {
+      const { workspace, browser } = context;
 
-            await workspace.write(
-                mainFile,
-                `
+      await workspace.write(
+        mainFile,
+        `
            import {createWorkerFactory} from '@shopify/web-worker';
  
            const worker = createWorkerFactory(() => import(/* webpackChunkName: ${JSON.stringify(
-                    name,
-                )} */ './worker'))();
+          name,
+        )} */ './worker'))();
  
            (async () => {
              const element = document.createElement('div');
@@ -384,39 +341,39 @@ describe.skip('web-worker', () => {
              document.body.appendChild(element);
            })();
          `,
-            );
+      );
 
-            await workspace.write(
-                workerFile,
-                `
+      await workspace.write(
+        workerFile,
+        `
            export default function(name) {
              return 'Hello world';
            }
          `,
-            );
+      );
 
-            await runWebpack(context);
+      await runWebpack(context);
 
-            const page = await browser.go();
-            await page.waitForSelector(`#${testId}`);
+      const page = await browser.go();
+      await page.waitForSelector(`#${testId}`);
 
-            expect(await getWorkerSource(page.workers()[0], page)).toContain(
-                `${name}.worker`,
-            );
-        });
+      expect(await getWorkerSource(page.workers()[0], page)).toContain(
+        `${name}.worker`,
+      );
     });
+  });
 
-    it('can create a "plain" worker factory that can produce workers wrapping the original module', async () => {
-        const greetingPrefix = 'Hello ';
-        const greetingTarget = 'world';
-        const testId = 'WorkerResult';
+  it('can create a "plain" worker factory that can produce workers wrapping the original module', async () => {
+    const greetingPrefix = 'Hello ';
+    const greetingTarget = 'world';
+    const testId = 'WorkerResult';
 
-        await withContext('plain', async (context) => {
-            const { workspace, browser } = context;
+    await withContext('plain', async (context) => {
+      const { workspace, browser } = context;
 
-            await workspace.write(
-                mainFile,
-                `
+      await workspace.write(
+        mainFile,
+        `
            import {createPlainWorkerFactory} from '@shopify/web-worker';
  
            const worker = createPlainWorkerFactory(() => import('./worker'))();
@@ -436,54 +393,54 @@ describe.skip('web-worker', () => {
              document.body.appendChild(element);
            })();
          `,
-            );
+      );
 
-            await workspace.write(
-                workerFile,
-                `
+      await workspace.write(
+        workerFile,
+        `
            self.addEventListener('message', ({data}) => {
              self.postMessage(\`${greetingPrefix}\${data}\`);
            });
          `,
-            );
+      );
 
-            await runWebpack(context);
+      await runWebpack(context);
 
-            const page = await browser.go();
-            const workerElement = await page.waitForSelector(`#${testId}`);
-            const textContent = await workerElement!.evaluate(
-                (element) => element.innerHTML,
-            );
+      const page = await browser.go();
+      const workerElement = await page.waitForSelector(`#${testId}`);
+      const textContent = await workerElement!.evaluate(
+        (element) => element.innerHTML,
+      );
 
-            expect(textContent).toBe(`${greetingPrefix}${greetingTarget}`);
-        });
+      expect(textContent).toBe(`${greetingPrefix}${greetingTarget}`);
     });
+  });
 
-    it('can create a worker that communicates via an iframe without same-origin credentials', async () => {
-        const cookie = 'MY_COOKIE';
-        const noCookiesResult = 'NoCookies';
-        const cookiesResult = 'Cookies';
-        const testId = 'WorkerResult';
+  it('can create a worker that communicates via an iframe without same-origin credentials', async () => {
+    const cookie = 'MY_COOKIE';
+    const noCookiesResult = 'NoCookies';
+    const cookiesResult = 'Cookies';
+    const testId = 'WorkerResult';
 
-        await withContext('no-same-origin', async (context) => {
-            const { workspace, browser, server } = context;
+    await withContext('no-same-origin', async (context) => {
+      const { workspace, browser, server } = context;
 
-            const path = '/app/ping';
+      const path = '/app/ping';
 
-            server.use((ctx, next) => {
-                if (ctx.originalUrl === path) {
-                    ctx.type = 'text';
-                    ctx.body = ctx.cookies.get(cookie) ? cookiesResult : noCookiesResult;
-                    ctx.set('Access-Control-Allow-Origin', '*');
-                    return;
-                }
+      server.use((ctx, next) => {
+        if (ctx.originalUrl === path) {
+          ctx.type = 'text';
+          ctx.body = ctx.cookies.get(cookie) ? cookiesResult : noCookiesResult;
+          ctx.set('Access-Control-Allow-Origin', '*');
+          return;
+        }
 
-                return next();
-            });
+        return next();
+      });
 
-            await workspace.write(
-                mainFile,
-                `
+      await workspace.write(
+        mainFile,
+        `
            import {createWorkerFactory, createIframeWorkerMessenger} from '@shopify/web-worker';
  
            const worker = createWorkerFactory(() => import('./worker'))({
@@ -499,29 +456,29 @@ describe.skip('web-worker', () => {
              document.body.appendChild(element);
            })();
          `,
-            );
+      );
 
-            await workspace.write(
-                workerFile,
-                `
+      await workspace.write(
+        workerFile,
+        `
            export default async function run() {
              const result = await fetch(${JSON.stringify(
-                    server.url(path),
-                )}, {method: 'GET'});
+          server.url(path),
+        )}, {method: 'GET'});
              return result.text();
            }
          `,
-            );
+      );
 
-            await runWebpack(context);
+      await runWebpack(context);
 
-            const page = await browser.go();
-            const workerElement = await page.waitForSelector(`#${testId}`);
-            const textContent = await workerElement!.evaluate(
-                (element) => element.innerHTML,
-            );
+      const page = await browser.go();
+      const workerElement = await page.waitForSelector(`#${testId}`);
+      const textContent = await workerElement!.evaluate(
+        (element) => element.innerHTML,
+      );
 
-            expect(textContent).toBe(noCookiesResult);
-        });
+      expect(textContent).toBe(noCookiesResult);
     });
+  });
 });
