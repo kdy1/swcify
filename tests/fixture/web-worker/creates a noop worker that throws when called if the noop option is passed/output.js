@@ -1,6 +1,13 @@
-import _worker from "/Users/kdy1/projects/swcify/test-ref-gen/node_modules/@shopify/web-worker/build/cjs/webpack-parts/loader?{\"plain\":false}!./worker";
 import { createWorkerFactory } from '@shopify/web-worker';
-const worker = createWorkerFactory(_worker)();
+
+const worker = (() => new Proxy({}, {
+  get() {
+    return () => {
+      throw new Error('You can’t call a method on a noop worker');
+    };
+  }
+
+}))();
 
 (async () => {
   const element = document.createElement('div');
