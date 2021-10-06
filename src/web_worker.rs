@@ -138,7 +138,7 @@ impl Fold for WebWorker {
                                     kind: Default::default(),
                                 };
 
-                                let worker_fn = private_ident!("worker");
+                                let worker_fn = private_ident!("_worker");
 
                                 e.args[0].expr = Box::new(Expr::Ident(worker_fn.clone()));
 
