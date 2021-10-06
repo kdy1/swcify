@@ -2,58 +2,6 @@
 // @TODO: Disabled for now because these tests are flaky and take a long time to run
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
-  it('throws an error when calling a function on a terminated worker from the main thread', async () => {
-    const greetingPrefix = 'Hello ';
-    const greetingTarget = 'world';
-    const testId = 'WorkerResult';
-
-    await withContext('error-on-terminated-worker-calls', async (context) => {
-      const { workspace, browser } = context;
-
-      await workspace.write(
-        mainFile,
-        `
-           import {createWorkerFactory, terminate} from '@shopify/web-worker';
-           self.worker = createWorkerFactory(() => import('./worker'))();
-           (async () => {
-             terminate(self.worker);
-             let result;
-             try {
-               result = await self.worker.greet(${JSON.stringify(
-          greetingTarget,
-        )});
-             } catch (error){
-               result = error.toString();
-             }
-             const element = document.createElement('div');
-             element.setAttribute('id', ${JSON.stringify(testId)});
-             element.textContent = result;
-             document.body.appendChild(element);
-           })();
-         `,
-      );
-
-      await workspace.write(
-        workerFile,
-        `
-           export function greet(name) {
-             return \`${greetingPrefix}\${name}\`;
-           }
-         `,
-      );
-
-      await runWebpack(context);
-
-      const page = await browser.go();
-      const workerElement = await page.waitForSelector(`#${testId}`);
-      const textContent = await workerElement!.evaluate(
-        (element) => element.innerHTML,
-      );
-      expect(textContent).toBe(
-        'Error: You attempted to call a function on a terminated web worker.',
-      );
-    });
-  });
 
   it('releases memory when the worker is terminated', async () => {
     const testId = 'WorkerResult';
