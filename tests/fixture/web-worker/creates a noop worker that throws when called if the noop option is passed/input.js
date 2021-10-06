@@ -4,7 +4,7 @@ const worker = createWorkerFactory(() => import('./worker'))();
 
 (async () => {
     const element = document.createElement('div');
-    element.setAttribute('id', ${ JSON.stringify(testId) });
+    element.setAttribute('id', "WorkerResult");
 
     try {
         await worker.willThrow();

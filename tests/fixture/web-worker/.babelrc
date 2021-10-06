@@ -1,5 +1,0 @@
-{
-    "plugins": [
-        "@shopify/web-worker/babel"
-    ]
-}
