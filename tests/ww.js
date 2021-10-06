@@ -2,65 +2,6 @@
 // @TODO: Disabled for now because these tests are flaky and take a long time to run
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
-  it('allows for multiple workers to be created without naming collisions', async () => {
-    const workerOneMessage = 'Hello';
-    const workerTwoMessage = 'world';
-    const testId = 'WorkerResult';
-
-    await withContext('multiple-workers', async (context) => {
-      const { workspace, browser } = context;
-
-      await workspace.write(
-        mainFile,
-        `
-           import {createWorkerFactory} from '@shopify/web-worker';
- 
-           const workerOne = createWorkerFactory(() => import(/* webpackChunkName: 'MyWorker' */ './worker'))();
-           const workerTwo = createWorkerFactory(() => import('./worker2'))();
- 
-           (async () => {
-             const results = await Promise.all([
-               workerOne.default(),
-               workerTwo.default(),
-             ]);
- 
-             const element = document.createElement('div');
-             element.setAttribute('id', ${JSON.stringify(testId)});
-             element.textContent = results.join(' ');
-             document.body.appendChild(element);
-           })();
-         `,
-      );
-
-      await workspace.write(
-        workerFile,
-        `
-           export default function(name) {
-             return ${JSON.stringify(workerOneMessage)};
-           }
-         `,
-      );
-
-      await workspace.write(
-        secondWorkerFile,
-        `
-           export default function(name) {
-             return ${JSON.stringify(workerTwoMessage)};
-           }
-         `,
-      );
-
-      await runWebpack(context);
-
-      const page = await browser.go();
-      const workerElement = await page.waitForSelector(`#${testId}`);
-
-      const textContent = await workerElement!.evaluate(
-        (element) => element.innerHTML,
-      );
-      expect(textContent).toBe(`${workerOneMessage} ${workerTwoMessage}`);
-    });
-  });
 
   it('allows setting a custom worker file name using the webpackChunkName directive', async () => {
     const name = 'myFancyWorker';
