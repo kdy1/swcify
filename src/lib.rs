@@ -19,7 +19,7 @@ use swc_common::{self, sync::Lazy, FilePathMapping, SourceMap};
 mod async_transform;
 mod transform;
 mod util;
-mod web_worker;
+pub mod web_worker;
 
 static COMPILER: Lazy<Arc<Compiler>> = Lazy::new(|| {
     let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
