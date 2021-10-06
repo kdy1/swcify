@@ -2,57 +2,6 @@
 // @TODO: Disabled for now because these tests are flaky and take a long time to run
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
-    it('calls into the module directly when not turned into a web worker', async () => {
-        const greetingPrefix = 'Hello ';
-        const greetingTarget = 'world';
-        const testId = 'WorkerResult';
-
-        await withContext('non-worker', async (context) => {
-            const { workspace, browser } = context;
-
-            await workspace.write(
-                mainFile,
-                `
-           import {createWorkerFactory} from '@shopify/web-worker';
- 
-           const worker = createWorkerFactory(() => import('./worker'))();
- 
-           (async () => {
-             const result = await worker.greet(${JSON.stringify(
-                    greetingTarget,
-                )});
-             const element = document.createElement('div');
-             element.setAttribute('id', ${JSON.stringify(testId)});
-             element.textContent = result;
-             document.body.appendChild(element);
-           })();
-         `,
-            );
-
-            await workspace.write(
-                workerFile,
-                `
-           export function greet(name) {
-             return \`${greetingPrefix}\${name}\`;
-           }
-         `,
-            );
-
-            await runWebpackBase(context, {
-                entry: context.workspace.resolvePath(mainFile),
-            });
-
-            const page = await browser.go();
-            const workerElement = await page.waitForSelector(`#${testId}`);
-            const textContent = await workerElement!.evaluate(
-                (element) => element.innerHTML,
-            );
-
-            expect(textContent).toBe(`${greetingPrefix}${greetingTarget}`);
-            expect(page.workers()).toHaveLength(0);
-        });
-    });
-
     it('creates a noop worker that throws when called if the noop option is passed', async () => {
         const testId = 'WorkerResult';
 
