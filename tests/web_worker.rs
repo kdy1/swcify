@@ -1,8 +1,12 @@
 use serde::Deserialize;
 use std::fs::read_to_string;
 use std::path::PathBuf;
+use swc_common::chain;
 use swc_ecma_transforms_testing::test_fixture;
-use swc_ecmascript::parser::{EsConfig, Syntax};
+use swc_ecmascript::{
+    parser::{EsConfig, Syntax},
+    transforms::resolver,
+};
 
 fn syntax() -> Syntax {
     Syntax::Es(EsConfig {
@@ -33,7 +37,10 @@ fn fixture(input: PathBuf) {
 
     test_fixture(
         syntax(),
-        &|_tr| swcify::web_worker::WebWorker::default(),
+        &|_tr| {
+            // resolver is required.
+            chain!(resolver(), swcify::web_worker::WebWorker::default())
+        },
         &input,
         &output,
     );
