@@ -21,63 +21,6 @@ jest.setTimeout(30_000);
 // @TODO: Disabled for now because these tests are flaky and take a long time to run
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
-    it('automatically proxies functions passed from the parent to the worker', async () => {
-        const nameOne = 'Gord';
-        const nameTwo = 'Michelle';
-        const testId = 'WorkerResult';
-
-        await withContext('function-to-worker', async (context) => {
-            const { workspace, browser } = context;
-
-            await workspace.write(
-                mainFile,
-                `
-           import {createWorkerFactory} from '@shopify/web-worker';
- 
-           const worker = createWorkerFactory(() => import('./worker'))();
- 
-           const users = [
-             {getName: () => ${JSON.stringify(nameOne)}},
-             {getName: () => ${JSON.stringify(nameTwo)}},
-           ];
- 
-           (async () => {
-             const result = await worker.greet(users);
-             const element = document.createElement('div');
-             element.setAttribute('id', ${JSON.stringify(testId)});
-             element.textContent = result;
-             document.body.appendChild(element);
-           })();
-         `,
-            );
-
-            await workspace.write(
-                workerFile,
-                `
-           export async function greet(users) {
-             const names = await Promise.all(
-               users.map((user) => {
-                 return user.getName();
-               })
-             );
- 
-             return \`Hello, \${names.join(' and ')}\`;
-           }
-         `,
-            );
-
-            await runWebpack(context);
-
-            const page = await browser.go();
-            const workerElement = await page.waitForSelector(`#${testId}`);
-            const textContent = await workerElement!.evaluate(
-                (element) => element.innerHTML,
-            );
-
-            expect(textContent).toBe(`Hello, ${nameOne} and ${nameTwo}`);
-        });
-    });
-
     it('automatically released references to functions after a call-stack is finished', async () => {
         const testId = 'WorkerResult';
 
