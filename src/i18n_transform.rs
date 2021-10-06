@@ -560,12 +560,7 @@ fn default_dict_arrow_fn() -> Expr {
             span: DUMMY_SP,
             op: op!("&&"),
             left: Box::new(Expr::Ident(Ident::new("dict".into(), DUMMY_SP))),
-            right: Box::new(Expr::Member(MemberExpr {
-                span: DUMMY_SP,
-                obj: Ident::new("dict".into(), DUMMY_SP).as_obj(),
-                prop: Box::new(Expr::Ident(Ident::new("default".into(), DUMMY_SP))),
-                computed: false,
-            })),
+            right: member_expr!(DUMMY_SP, dict.default),
         }))),
         is_async: false,
         is_generator: false,
