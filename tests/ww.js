@@ -21,60 +21,6 @@ jest.setTimeout(30_000);
 // @TODO: Disabled for now because these tests are flaky and take a long time to run
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
-    it('creates a worker that propagates thrown errors', async () => {
-        const errorMessage = 'Something went wrong!';
-        const testId = 'WorkerResult';
-
-        await withContext('thrown-error', async (context) => {
-            const { workspace, browser, server } = context;
-
-            await workspace.write(
-                mainFile,
-                `
-           import {createWorkerFactory} from '@shopify/web-worker';
- 
-           const worker = createWorkerFactory(() => import('./worker'))();
- 
-           (async () => {
-             let content = '';
- 
-             try {
-               await worker.blowUp();
-               content = 'All clear!';
-             } catch (error) {
-               content = error.message + error.stack;
-             }
- 
-             const element = document.createElement('div');
-             element.setAttribute('id', ${JSON.stringify(testId)});
-             element.textContent = content;
-             document.body.appendChild(element);
-           })();
-         `,
-            );
-
-            await workspace.write(
-                workerFile,
-                `
-           export function blowUp() {
-             throw new Error(${JSON.stringify(errorMessage)});
-           }
-         `,
-            );
-
-            await runWebpack(context);
-
-            const page = await browser.go();
-            const workerElement = await page.waitForSelector(`#${testId}`);
-            const textContent = await workerElement!.evaluate(
-                (element) => element.innerHTML,
-            );
-
-            expect(textContent).toContain(errorMessage);
-            expect(textContent).toContain(server.assetUrl('0.worker.js').href);
-        });
-    });
-
     it('supports using arbitrary webpack plugins on the worker build', async () => {
         const magicVar = { id: '__MAGIC_VAR__', value: 'It’s magic!' };
         const testId = 'WorkerResult';
