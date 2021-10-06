@@ -1,0 +1,3 @@
+{
+    "throws": "Error: You attempted to call a function on a terminated web worker."
+}
