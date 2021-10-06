@@ -2,60 +2,6 @@
 // @TODO: Disabled for now because these tests are flaky and take a long time to run
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
-
-  it('can create a "plain" worker factory that can produce workers wrapping the original module', async () => {
-    const greetingPrefix = 'Hello ';
-    const greetingTarget = 'world';
-    const testId = 'WorkerResult';
-
-    await withContext('plain', async (context) => {
-      const { workspace, browser } = context;
-
-      await workspace.write(
-        mainFile,
-        `
-           import {createPlainWorkerFactory} from '@shopify/web-worker';
- 
-           const worker = createPlainWorkerFactory(() => import('./worker'))();
- 
-           (async () => {
-             const result = await new Promise((resolve) => {
-               worker.addEventListener('message', ({data}) => {
-                 resolve(data);
-               });
- 
-               worker.postMessage(${JSON.stringify(greetingTarget)});
-             });
- 
-             const element = document.createElement('div');
-             element.setAttribute('id', ${JSON.stringify(testId)});
-             element.textContent = result;
-             document.body.appendChild(element);
-           })();
-         `,
-      );
-
-      await workspace.write(
-        workerFile,
-        `
-           self.addEventListener('message', ({data}) => {
-             self.postMessage(\`${greetingPrefix}\${data}\`);
-           });
-         `,
-      );
-
-      await runWebpack(context);
-
-      const page = await browser.go();
-      const workerElement = await page.waitForSelector(`#${testId}`);
-      const textContent = await workerElement!.evaluate(
-        (element) => element.innerHTML,
-      );
-
-      expect(textContent).toBe(`${greetingPrefix}${greetingTarget}`);
-    });
-  });
-
   it('can create a worker that communicates via an iframe without same-origin credentials', async () => {
     const cookie = 'MY_COOKIE';
     const noCookiesResult = 'NoCookies';
