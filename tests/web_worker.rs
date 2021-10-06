@@ -38,6 +38,10 @@ fn fixture(input: PathBuf) {
     // TODO(kdy1): Use config.
     let config: TestConfig = serde_json::from_str(&config).expect("failed to parse config.json");
 
+    if config.throws.is_some() {
+        unimplemented!("testing for throwing tests")
+    }
+
     test_fixture(
         syntax(),
         &|_tr| {
