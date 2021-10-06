@@ -26,14 +26,3 @@ fn async_fixture(input: PathBuf) {
         &output,
     );
 }
-
-#[fixture("tests/fixture/web-worker/**/input.js")]
-fn web_worker(input: PathBuf) {
-    let output = input.parent().unwrap().join("output.js");
-    test_fixture(
-        syntax(),
-        &|_tr| swcify::web_worker::WebWorker::default(),
-        &input,
-        &output,
-    );
-}
