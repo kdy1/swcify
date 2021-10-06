@@ -10,6 +10,7 @@ export default createPackage((pkg) => {
   pkg.runtimes(Runtime.Node);
   pkg.entry({root: './js/index'});
   pkg.entry({root: './js/jest', name: 'jest'});
+  pkg.entry({root: './js/webpack', name: 'webpack'});
 
   try {
     pkg.use(
