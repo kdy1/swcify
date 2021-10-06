@@ -2,57 +2,6 @@
 // @TODO: Disabled for now because these tests are flaky and take a long time to run
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('web-worker', () => {
-  it('terminates the worker from the main thread', async () => {
-    const testId = 'WorkerResult';
-    const terminateId = 'Terminate';
-
-    await withContext('terminate', async (context) => {
-      const { workspace, browser } = context;
-
-      await workspace.write(
-        mainFile,
-        `
-         import {createWorkerFactory, terminate} from '@shopify/web-worker';
-         self.worker = createWorkerFactory(() => import('./worker'))();
- 
-         (async () => {
-           const result = await self.worker.greet();
-           const element = document.createElement('div');
-           element.setAttribute('id', ${JSON.stringify(testId)});
-           element.textContent = result;
-           document.body.appendChild(element);
-         })();
- 
-         self.terminateWorker =  () => {
-           terminate(self.worker);
-           const element = document.createElement('div');
-           element.setAttribute('id', ${JSON.stringify(terminateId)});
-           document.body.appendChild(element);
-         }
-       `,
-      );
-
-      await workspace.write(
-        workerFile,
-        `
-         export function greet() {
-           return 'Hi, friend!';
-         }
-       `,
-      );
-
-      await runWebpack(context);
-
-      const page = await browser.go();
-      await page.waitForSelector(`#${testId}`);
-      expect(page.workers()).toHaveLength(1);
-
-      await page.evaluate(() => (self as any).terminateWorker());
-      await page.waitForSelector(`#${terminateId}`);
-      expect(page.workers()).toHaveLength(0);
-    });
-  });
-
   it('throws an error when calling a function on a terminated worker from the main thread', async () => {
     const greetingPrefix = 'Hello ';
     const greetingTarget = 'world';
