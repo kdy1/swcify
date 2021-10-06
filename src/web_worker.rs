@@ -11,9 +11,10 @@ use swc_ecmascript::{
     visit::{Fold, FoldWith, Node, Visit, VisitWith},
 };
 
+#[derive(Default)]
 pub struct WebWorker {
     data: Data,
-    eval: Evaluator,
+    eval: Option<Evaluator>,
     added_imports: Vec<ModuleItem>,
 }
 
@@ -64,7 +65,12 @@ impl Fold for WebWorker {
                                     }) => {
                                         if callee.is_ident_ref_to(js_word!("import")) {
                                             if args.len() == 1 && args[0].spread.is_none() {
-                                                match self.eval.eval(&args[0].expr) {
+                                                match self
+                                                    .eval
+                                                    .as_mut()
+                                                    .unwrap()
+                                                    .eval(&args[0].expr)
+                                                {
                                                     Some(EvalResult::Lit(Lit::Str(s))) => {
                                                         // import workerStuff from '@shopify/web-worker/webpack-loader!./worker';
                                                         // createWorkerFactory(workerStuff);
@@ -142,7 +148,7 @@ impl Fold for WebWorker {
             return m;
         }
 
-        self.eval = Evaluator::new(m.clone(), Marks::new());
+        self.eval = Some(Evaluator::new(m.clone(), Marks::new()));
 
         m.fold_children_with(self)
     }
