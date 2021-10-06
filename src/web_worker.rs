@@ -66,8 +66,6 @@ impl Fold for WebWorker {
                                             if args.len() == 1 && args[0].spread.is_none() {
                                                 match self.eval.eval(&args[0].expr) {
                                                     Some(EvalResult::Lit(Lit::Str(s))) => {
-                                                        // TODO(kdy1):
-                                                        //
                                                         // import workerStuff from '@shopify/web-worker/webpack-loader!./worker';
                                                         // createWorkerFactory(workerStuff);
 
@@ -104,8 +102,8 @@ impl Fold for WebWorker {
                                                             ),
                                                         )
                                                     }
-                                                    _ => {
-                                                        // TODO(kdy1): Should we report an error?
+                                                    res => {
+                                                        panic!("Failed to evaluate a dynamic import to a string to create a web worker: eval result = {:?}",res)
                                                     }
                                                 }
                                             } else {
