@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use maplit::hashmap;
+use swc_atoms::JsWord;
 use swc_common::DUMMY_SP;
 use swc_ecmascript::ast::{
     ArrowExpr, AssignExpr, BindingIdent, BlockStmt, BlockStmtOrExpr, CallExpr, Expr, ExprOrSpread,
@@ -9,6 +10,7 @@ use swc_ecmascript::ast::{
     StrKind, VarDecl,
 };
 use swc_ecmascript::utils::ident::{Id, IdentLike};
+use swc_ecmascript::utils::ExprFactory;
 use swc_ecmascript::visit::{Fold, FoldWith};
 
 #[derive(Debug)]
@@ -82,8 +84,8 @@ impl Fold for AsyncTransform {
     fn fold_assign_expr(&mut self, assign_expr: AssignExpr) -> AssignExpr {
         let assign_expr = assign_expr.fold_children_with(self);
         // Check if assignment overrides target import
-        if let PatOrExpr::Pat(pattern) = assign_expr.left.clone() {
-            if let Pat::Ident(BindingIdent { id, .. }) = &*pattern {
+        if let PatOrExpr::Pat(pattern) = &assign_expr.left {
+            if let Pat::Ident(BindingIdent { id, .. }) = &**pattern {
                 if self.bindings.contains(&id.to_id()) {
                     if let Some(block_overriden_bindings) = self.overridden_bindings.last_mut() {
                         block_overriden_bindings.push(id.to_id());
@@ -111,39 +113,39 @@ impl Fold for AsyncTransform {
 
     fn fold_call_expr(&mut self, call_expr: CallExpr) -> CallExpr {
         let mut call_expr = call_expr.fold_children_with(self);
-        if let ExprOrSuper::Expr(i) = call_expr.callee.clone() {
-            if let Expr::Ident(identifier) = &*i {
+        let mut should_rewrite_call_expr = false;
+        if let ExprOrSuper::Expr(i) = &call_expr.callee {
+            if let Expr::Ident(identifier) = &**i {
                 if self.is_target_binding(&identifier.to_id()) {
-                    rewrite_call_expr(&mut call_expr, self.webpack);
+                    should_rewrite_call_expr = true;
                 }
             }
+        }
+        if should_rewrite_call_expr {
+            rewrite_call_expr(&mut call_expr, self.webpack);
         }
         call_expr
     }
 }
 
-fn add_id_option(object: &mut ObjectLit, path: String, webpack: bool) {
+fn add_id_option(object: &mut ObjectLit, path: JsWord, webpack: bool) {
     let resolve_call_ident = if webpack { "resolveWeak" } else { "resolve" };
     let req_expr = Expr::Call(CallExpr {
         span: DUMMY_SP,
-        callee: ExprOrSuper::Expr(Box::new(Expr::Member(MemberExpr {
+        callee: MemberExpr {
             span: DUMMY_SP,
-            obj: ExprOrSuper::Expr(Box::new(Expr::Ident(Ident::new(
-                "require".into(),
-                DUMMY_SP,
-            )))),
+            obj: Ident::new("require".into(), DUMMY_SP).as_obj(),
             prop: Box::new(Expr::Ident(Ident::new(resolve_call_ident.into(), DUMMY_SP))),
             computed: false,
-        }))),
-        args: vec![ExprOrSpread {
-            spread: None,
-            expr: Box::new(Expr::Lit(Lit::Str(Str {
-                value: path.into(),
-                span: DUMMY_SP,
-                kind: StrKind::Synthesized {},
-                has_escape: false,
-            }))),
-        }],
+        }
+        .as_callee(),
+        args: vec![Str {
+            value: path.into(),
+            span: DUMMY_SP,
+            kind: StrKind::Synthesized {},
+            has_escape: false,
+        }
+        .as_arg()],
         type_args: None,
     });
     let prop_val = ArrowExpr {
@@ -167,7 +169,7 @@ fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) {
         return;
     }
     if let Expr::Object(object_arg) = &mut *call_expr.args[0].expr {
-        let mut import_path: Option<String> = None;
+        let mut import_path: Option<JsWord> = None;
         for prop_spread in object_arg.props.iter() {
             if let PropOrSpread::Prop(prop) = prop_spread.clone() {
                 match *prop {
@@ -208,7 +210,7 @@ fn rewrite_call_expr(call_expr: &mut CallExpr, webpack: bool) {
     }
 }
 
-fn get_import_path_from_arrow_expr(arrow_expr: ArrowExpr) -> Option<String> {
+fn get_import_path_from_arrow_expr(arrow_expr: ArrowExpr) -> Option<JsWord> {
     match arrow_expr.body {
         BlockStmtOrExpr::Expr(body_expr) => {
             if let Expr::Call(call_expr) = *body_expr {
@@ -222,7 +224,7 @@ fn get_import_path_from_arrow_expr(arrow_expr: ArrowExpr) -> Option<String> {
     None
 }
 
-fn get_import_path_from_function_expr(fn_expr: FnExpr) -> Option<String> {
+fn get_import_path_from_function_expr(fn_expr: FnExpr) -> Option<JsWord> {
     if let FnExpr {
         function: Function {
             body: Some(block_stmt),
@@ -236,7 +238,7 @@ fn get_import_path_from_function_expr(fn_expr: FnExpr) -> Option<String> {
     None
 }
 
-fn get_import_path_from_block_stmt(block_stmt: BlockStmt) -> Option<String> {
+fn get_import_path_from_block_stmt(block_stmt: BlockStmt) -> Option<JsWord> {
     // Checks if `return import..` matches last statment
     if let Some(Stmt::Return(ReturnStmt {
         arg: Some(return_arg),
@@ -250,12 +252,12 @@ fn get_import_path_from_block_stmt(block_stmt: BlockStmt) -> Option<String> {
     None
 }
 
-fn get_import_path_from_import_call(call_expr: CallExpr) -> Option<String> {
+fn get_import_path_from_import_call(call_expr: CallExpr) -> Option<JsWord> {
     if let ExprOrSuper::Expr(e) = call_expr.callee {
         if let Expr::Ident(Ident { sym, .. }) = *e {
             if &sym == "import" {
                 if let Expr::Lit(Lit::Str(Str { value, .. })) = *call_expr.args[0].expr.clone() {
-                    return Some(value.to_string());
+                    return Some(value);
                 }
             }
         }
