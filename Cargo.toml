@@ -22,6 +22,7 @@ swc_ecmascript = { version = "0.69.0", features = ["codegen", "minifier", "optim
 swc_ecma_preset_env = "0.48.0"
 maplit = "1.0.2"
 rustc-hash = "1.1.0"
+tracing = { version = "0.1.29", features = ["release_max_level_off"] }
 
 [lib]
 crate-type = ["cdylib","rlib"]
