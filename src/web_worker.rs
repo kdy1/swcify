@@ -1,6 +1,7 @@
 use std::mem::take;
 
 use rustc_hash::FxHashMap;
+use serde::Serialize;
 use swc_atoms::js_word;
 use swc_common::DUMMY_SP;
 use swc_ecmascript::{
@@ -30,6 +31,14 @@ struct Data {
     ///
     ///  - Value means plain
     create_worker_factory: FxHashMap<Id, bool>,
+}
+
+/// Options of **webpack** loaders.
+#[derive(Debug, Serialize)]
+struct LoaderOptions {
+    plain: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
 }
 
 impl WebWorker {
@@ -112,11 +121,17 @@ impl Fold for WebWorker {
                             if let Some(s) = self.extract_import_from_arrow_arg(&e.args) {
                                 // import workerStuff from '@shopify/web-worker/webpack-loader!./worker';
                                 // createWorkerFactory(workerStuff);
+
+                                // TOOD(kdy1): Parse `webpackChunkName` in comments.
+
+                                let loader_opts = LoaderOptions { plain, name: None };
+                                let options_json = serde_json::to_string(&loader_opts).unwrap();
+
                                 let src = Str {
                                     span: s.span,
                                     value: format!(
-                                        "@shopify/web-worker/webpack-loader!{}",
-                                        s.value
+                                        "@shopify/web-worker/webpack-loader?{}!{}",
+                                        options_json, s.value
                                     )
                                     .into(),
                                     has_escape: false,
