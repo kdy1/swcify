@@ -15,7 +15,21 @@ use swc_ecmascript::{
 };
 
 #[derive(Default)]
+pub struct Config {
+    pub noop: bool,
+}
+
+pub fn web_worker(config: Config) -> WebWorker {
+    WebWorker {
+        config,
+        data: Default::default(),
+        eval: Default::default(),
+        added_imports: Default::default(),
+    }
+}
+
 pub struct WebWorker {
+    config: Config,
     data: Data,
     eval: Option<Evaluator>,
     added_imports: Vec<ModuleItem>,
