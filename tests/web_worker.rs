@@ -44,10 +44,13 @@ fn fixture(input: PathBuf) {
 
     test_fixture(
         syntax(),
-        &|_tr| {
+        &|t| {
             let config = swcify::web_worker::Config { noop: config.noop };
             // resolver is required.
-            chain!(resolver(), swcify::web_worker::web_worker(config))
+            chain!(
+                resolver(),
+                swcify::web_worker::web_worker(config, t.comments.clone())
+            )
         },
         &input,
         &output,
