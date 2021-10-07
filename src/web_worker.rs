@@ -3,8 +3,11 @@ use std::mem::take;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use swc_atoms::js_word;
+use swc_common::comments;
+use swc_common::comments::Comments;
 use swc_common::Spanned;
 use swc_common::DUMMY_SP;
+use swc_ecmascript::visit::noop_fold_type;
 use swc_ecmascript::{
     ast::*,
     minifier::{
@@ -20,17 +23,25 @@ pub struct Config {
     pub noop: bool,
 }
 
-pub fn web_worker(config: Config) -> WebWorker {
+pub fn web_worker<C>(config: Config, comments: C) -> WebWorker<C>
+where
+    C: Comments,
+{
     WebWorker {
         config,
+        comments,
         data: Default::default(),
         eval: Default::default(),
         added_imports: Default::default(),
     }
 }
 
-pub struct WebWorker {
+pub struct WebWorker<C>
+where
+    C: Comments,
+{
     config: Config,
+    comments: C,
     data: Data,
     eval: Option<Evaluator>,
     added_imports: Vec<ModuleItem>,
@@ -56,7 +67,10 @@ struct LoaderOptions {
     name: Option<String>,
 }
 
-impl WebWorker {
+impl<C> WebWorker<C>
+where
+    C: Comments,
+{
     /// Returns `Some(plain)` if calleed is `createWorkerFactory`.
     fn extract_call_to_create_worker_factory(&mut self, callee: &Expr) -> Option<bool> {
         match callee {
@@ -120,9 +134,11 @@ impl WebWorker {
     }
 }
 
-impl Fold for WebWorker {
-    // TODO(kdy1): Apply this after https://github.com/swc-project/swc/pull/2347 is merged
-    // noop_fold_type!()
+impl<C> Fold for WebWorker<C>
+where
+    C: Comments,
+{
+    noop_fold_type!()
 
     fn fold_call_expr(&mut self, e: CallExpr) -> CallExpr {
         let mut e = e.fold_children_with(self);
@@ -203,8 +219,7 @@ impl Fold for WebWorker {
 }
 
 impl Visit for ImportAnalyzer<'_> {
-    // TODO(kdy1): Apply this after https://github.com/swc-project/swc/pull/2347 is merged
-    // noop_visit_type!()
+    noop_visit_type!()
 
     fn visit_import_decl(&mut self, n: &ImportDecl, _: &dyn Node) {
         if &*n.src.value == "@shopify/web-worker" || &*n.src.value == "@shopify/react-web-worker" {
