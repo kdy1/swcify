@@ -8,6 +8,7 @@ use swc_common::comments::Comments;
 use swc_common::Spanned;
 use swc_common::DUMMY_SP;
 use swc_ecmascript::visit::noop_fold_type;
+use swc_ecmascript::visit::noop_visit_type;
 use swc_ecmascript::{
     ast::*,
     minifier::{
@@ -138,7 +139,7 @@ impl<C> Fold for WebWorker<C>
 where
     C: Comments,
 {
-    noop_fold_type!()
+    noop_fold_type!();
 
     fn fold_call_expr(&mut self, e: CallExpr) -> CallExpr {
         let mut e = e.fold_children_with(self);
@@ -153,7 +154,6 @@ where
                         // createWorkerFactory(workerStuff);
 
                         // TOOD(kdy1): Parse `webpackChunkName` in comments.
-
                         let loader_opts = LoaderOptions { plain, name: None };
                         let options_json = serde_json::to_string(&loader_opts).unwrap();
 
@@ -219,7 +219,7 @@ where
 }
 
 impl Visit for ImportAnalyzer<'_> {
-    noop_visit_type!()
+    noop_visit_type!();
 
     fn visit_import_decl(&mut self, n: &ImportDecl, _: &dyn Node) {
         if &*n.src.value == "@shopify/web-worker" || &*n.src.value == "@shopify/react-web-worker" {
