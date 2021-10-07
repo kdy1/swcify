@@ -1,9 +1,10 @@
+use std::fmt::Debug;
 use std::mem::take;
 
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use swc_atoms::js_word;
-use swc_common::comments;
+use swc_common::comments::CommentKind;
 use swc_common::comments::Comments;
 use swc_common::Spanned;
 use swc_common::DUMMY_SP;
@@ -26,7 +27,7 @@ pub struct Config {
 
 pub fn web_worker<C>(config: Config, comments: C) -> WebWorker<C>
 where
-    C: Comments,
+    C: Comments + Debug,
 {
     WebWorker {
         config,
@@ -39,7 +40,7 @@ where
 
 pub struct WebWorker<C>
 where
-    C: Comments,
+    C: Comments + Debug,
 {
     config: Config,
     comments: C,
@@ -63,14 +64,14 @@ struct Data {
 /// Options of **webpack** loaders.
 #[derive(Debug, Serialize)]
 struct LoaderOptions {
-    plain: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
+    plain: bool,
 }
 
 impl<C> WebWorker<C>
 where
-    C: Comments,
+    C: Comments + Debug,
 {
     /// Returns `Some(plain)` if calleed is `createWorkerFactory`.
     fn extract_call_to_create_worker_factory(&mut self, callee: &Expr) -> Option<bool> {
@@ -137,7 +138,7 @@ where
 
 impl<C> Fold for WebWorker<C>
 where
-    C: Comments,
+    C: Comments + Debug,
 {
     noop_fold_type!();
 
@@ -153,8 +154,32 @@ where
                         // import workerStuff from '@shopify/web-worker/webpack-loader!./worker';
                         // createWorkerFactory(workerStuff);
 
-                        // TOOD(kdy1): Parse `webpackChunkName` in comments.
-                        let loader_opts = LoaderOptions { plain, name: None };
+                        let mut loader_opts = LoaderOptions { plain, name: None };
+
+                        // Parse `webpackChunkName` in comments.
+                        if let Some(comments) = self.comments.get_leading(s.span.lo) {
+                            for c in comments {
+                                if matches!(c.kind, CommentKind::Line) {
+                                    continue;
+                                }
+
+                                let s = c.text.trim();
+                                if let Some(s) = s.strip_prefix("webpackChunkName:") {
+                                    let s = s
+                                        .trim()
+                                        .strip_prefix('\"')
+                                        .and_then(|s| s.strip_suffix('\"'));
+
+                                    if let Some(s) = s {
+                                        if loader_opts.name.is_some() {
+                                            panic!("`webpackChunkName:` can be specified only once")
+                                        }
+                                        loader_opts.name = Some(s.into());
+                                    }
+                                }
+                            }
+                        }
+
                         let options_json = serde_json::to_string(&loader_opts).unwrap();
 
                         let src = Str {
