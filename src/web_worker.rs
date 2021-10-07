@@ -8,6 +8,8 @@ use swc_common::comments::CommentKind;
 use swc_common::comments::Comments;
 use swc_common::Spanned;
 use swc_common::DUMMY_SP;
+use swc_ecmascript::utils::quote_ident;
+use swc_ecmascript::utils::ExprFactory;
 use swc_ecmascript::visit::noop_fold_type;
 use swc_ecmascript::visit::noop_visit_type;
 use swc_ecmascript::{
@@ -147,8 +149,93 @@ where
 
         match &e.callee {
             ExprOrSuper::Expr(callee) => {
+                let callee_span = callee.span();
+
                 if let Some(plain) = self.extract_call_to_create_worker_factory(&callee) {
-                    let callee_span = callee.span();
+                    if self.config.noop {
+                        let return_arrow = {
+                            let msg = Lit::Str(Str {
+                                span: DUMMY_SP,
+                                value: "You can’t call a method on a noop worker".into(),
+                                has_escape: false,
+                                kind: Default::default(),
+                            });
+                            let throw_stmt = Stmt::Throw(ThrowStmt {
+                                span: DUMMY_SP,
+                                arg: Box::new(Expr::New(NewExpr {
+                                    span: DUMMY_SP,
+                                    callee: Box::new(Expr::Ident(quote_ident!("Error"))),
+                                    args: Some(vec![msg.as_arg()]),
+                                    type_args: Default::default(),
+                                })),
+                            });
+
+                            Stmt::Return(ReturnStmt {
+                                span: DUMMY_SP,
+                                arg: Some(Box::new(Expr::Arrow(ArrowExpr {
+                                    span: DUMMY_SP,
+                                    params: vec![],
+                                    body: BlockStmtOrExpr::BlockStmt(BlockStmt {
+                                        span: DUMMY_SP,
+                                        stmts: vec![throw_stmt],
+                                    }),
+                                    is_async: false,
+                                    is_generator: false,
+                                    type_params: Default::default(),
+                                    return_type: Default::default(),
+                                }))),
+                            })
+                        };
+
+                        let mut second = ObjectLit {
+                            span: DUMMY_SP,
+                            props: vec![],
+                        };
+                        second
+                            .props
+                            .push(PropOrSpread::Prop(Box::new(Prop::Method(MethodProp {
+                                key: PropName::Ident(quote_ident!("get")),
+                                function: Function {
+                                    params: vec![],
+                                    decorators: Default::default(),
+                                    span: DUMMY_SP,
+                                    body: Some(BlockStmt {
+                                        span: DUMMY_SP,
+                                        stmts: vec![return_arrow],
+                                    }),
+                                    is_generator: false,
+                                    is_async: false,
+                                    type_params: Default::default(),
+                                    return_type: Default::default(),
+                                },
+                            }))));
+
+                        let body = Box::new(Expr::New(NewExpr {
+                            span: DUMMY_SP,
+                            callee: Box::new(Expr::Ident(quote_ident!("Proxy"))),
+                            args: Some(vec![
+                                ObjectLit {
+                                    span: DUMMY_SP,
+                                    props: vec![],
+                                }
+                                .as_arg(),
+                                second.as_arg(),
+                            ]),
+                            type_args: Default::default(),
+                        }));
+
+                        e.args[0].expr = Box::new(Expr::Arrow(ArrowExpr {
+                            span: callee_span,
+                            params: vec![],
+                            body: BlockStmtOrExpr::Expr(body),
+                            is_async: false,
+                            is_generator: false,
+                            type_params: Default::default(),
+                            return_type: Default::default(),
+                        }));
+
+                        return e;
+                    }
 
                     if let Some(s) = self.extract_import_from_arrow_arg(&e.args) {
                         // import workerStuff from '@shopify/web-worker/webpack-loader!./worker';
