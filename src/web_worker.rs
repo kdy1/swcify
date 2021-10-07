@@ -155,7 +155,6 @@ where
                         // createWorkerFactory(workerStuff);
 
                         let mut loader_opts = LoaderOptions { plain, name: None };
-
                         // Parse `webpackChunkName` in comments.
                         if let Some(comments) = self.comments.get_leading(s.span.lo) {
                             for c in comments {
@@ -165,12 +164,20 @@ where
 
                                 let s = c.text.trim();
                                 if let Some(s) = s.strip_prefix("webpackChunkName:") {
-                                    let s = s
-                                        .trim()
-                                        .strip_prefix('\"')
-                                        .and_then(|s| s.strip_suffix('\"'));
+                                    // Check for "foo"
 
-                                    if let Some(s) = s {
+                                    let stripped = s
+                                        .trim()
+                                        .strip_prefix('"')
+                                        .and_then(|s| s.strip_suffix('"'))
+                                        .or_else(|| {
+                                            // Allow using 'foo'
+                                            s.trim()
+                                                .strip_suffix('\'')
+                                                .and_then(|s| s.strip_prefix('\''))
+                                        });
+
+                                    if let Some(s) = stripped {
                                         if loader_opts.name.is_some() {
                                             panic!("`webpackChunkName:` can be specified only once")
                                         }
